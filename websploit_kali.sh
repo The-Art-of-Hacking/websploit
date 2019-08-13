@@ -69,3 +69,10 @@ git clone https://github.com/The-Art-of-Hacking/h4cker.git
 #getting test ssl script
 curl -L https://testssl.sh --output testssl.sh
 chmod +x testssl.sh
+
+#Installing Jupyter Notebooks
+apt install jupyter-notebook
+
+clear
+
+echo "All set! Have fun! - Ωr"
