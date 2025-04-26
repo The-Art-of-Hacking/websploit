@@ -1,8 +1,7 @@
-# WebsSploit
-This is a virtual machine (VM) created by Omar Santos for different Cybersecurity Ethical Hacking (Web Penetration Testing) training sessions .The purpose of this VM is to have a single VM lab environment with several vulnerable applications running in Docker containers; the tools that come in Kali Linux; a few additional tools; intentionally vulnerable applications running in Docker containers, and a mobile device emulator. 
+# WebSploit Labs
+WebSploit Labs is a learning environment created by Omar Santos for different Cybersecurity Ethical Hacking, Bug Hunting, Incident Response, Digital Forensics, and Threat Hunting training sessions. WebSploit Labs includes several intentionally vulnerable applications running in Docker containers on top of Kali Linux or Parrot Security OS, several additional tools, and over 9,000 cybersecurity resources.
 
-You can download WebSploit and find additional details at: https://websploit.org
+WebSploit Labs has been used by many colleges and universities in different countries. It comes with over 500 distinct exercises!
 
-This repository is mainly to keep track of feature requests and issues.
+You can obtain additional information about WebSploit Labs at: [https://websploit.org](https://websploit.org)
 
-Scripts can be downloaded at https://websploit.org
