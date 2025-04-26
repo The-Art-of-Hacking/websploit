@@ -1,0 +1,36 @@
+# .github/workflows/generate_checksum.yml
+
+name: Generate SHA Checksum
+
+on:
+  push:
+    branches:
+      - main # Or whichever branch contains install.sh
+    paths:
+      - 'install.sh' # Only run if install.sh changes
+
+jobs:
+  checksum:
+    runs-on: ubuntu-latest # Use a standard Linux runner
+
+    # Grant permissions for the GITHUB_TOKEN to push commits
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Checks out your repository code
+
+      - name: Generate SHA512 checksum for WebSploit Labs install.sh
+        run: |
+          shasum -a 512 install.sh > install.sha
+          echo "Checksum generated."
+
+      - name: Commit and push if checksum changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update install.sha checksum [skip ci]" # Add [skip ci] to prevent triggering this workflow again
+          file_pattern: install.sha # Only commit changes to install.sha
+          commit_user_name: github-actions[bot] # Name of the committer
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com # Email of the committer
+          commit_author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> # Author of the commit
