@@ -1,41 +1,56 @@
 #!/bin/bash
-# Author: Omar Santos @santosomar
-# Lame script to display the running containers in WebSploit
+# Author: Omar Santos (@santosomar)
+# Dynamic script to display running WebSploit containers and their IP addresses.
 
+# Clear the screen
 clear
-echo -e "\n\e[96mWebSploit\e[39m"
-echo -e "by Omar Santos @santosomar"
-echo -e "-------------------------------------"
-echo -e "Internal Hacking Networks: 10.6.6.0/24 and 10.7.7.0/24"
-echo -e "Your bridge networks:"
-ip -c -brie a | grep 10.6.6.1
-ip -c -brie a | grep 10.7.7.1
 
-echo -e "
-The following are the WebSploit vulnerable containers and associated IP addresses.
-+------------------------+------------+
-|     Container          | IP Address |
-+------------------------+------------+
-| webgoat                |  10.6.6.11 |
-| juice-shop             |  10.6.6.12 |
-| dvwa                   |  10.6.6.13 |
-| mutillidae_2           |  10.6.6.14 |
-| dvna                   |  10.6.6.15 |
-| hackazon               |  10.6.6.16 |
-| hackme-rtov            |  10.6.6.17 |
-| mayhem                 |  10.6.6.18 |
-| rtv-safemode           |  10.6.6.19 |
-| galactic-archives      |  10.6.6.20 |
-| yascon-hackme          |  10.6.6.21 |
-| secretcorp-branch1     |  10.6.6.22 |
-| gravemind              |  10.6.6.23 |
-| dc30_01                |  10.6.6.24 |
-| dc30_01                |  10.6.6.25 |
-| y-wing                 |  10.6.6.26 |
-| dc31_01                |  10.7.7.21 |
-| dc31_02                |  10.7.7.22 |
-| dc31_03                |  10.7.7.23 |
-+------------------------+------------+ "
+# Header
+echo -e "\n\e[96mWebSploit Lab Environment\e[39m"
+echo -e "by Omar Santos (@santosomar)"
+echo -e "-------------------------------------------"
+echo -e "Internal Hacking Networks: \e[93m10.6.6.0/24\e[39m and \e[93m10.7.7.0/24\e[39m\n"
 
-echo -e "The following are the \e[92mrunning \e[39mcontainers with their associated ports:"
+# Show bridge networks
+echo -e "Your configured bridge network interfaces:"
+ip -c -brie a | grep -E "10\.6\.6\.1|10\.7\.7\.1" || echo -e "\e[91mNo matching interfaces found.\e[39m"
+
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo -e "\n\e[91mDocker is not installed or not in your PATH.\e[39m"
+    exit 1
+fi
+
+# Check if Docker daemon is running
+if ! docker info &> /dev/null; then
+    echo -e "\n\e[91mDocker is not running. Please start Docker.\e[39m"
+    exit 1
+fi
+
+# Function to get IP address of a container
+get_container_ip() {
+    local container_name=$1
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$container_name"
+}
+
+# List all WebSploit containers (you could filter with a prefix/tag if needed)
+echo -e "\n\e[96mDetected WebSploit Containers:\e[39m"
+printf "+------------------------+---------------+\n"
+printf "| %-22s | %-13s |\n" "Container" "IP Address"
+printf "+------------------------+---------------+\n"
+
+# Loop through running containers
+docker ps --format "{{.Names}}" | while read -r container; do
+    ip=$(get_container_ip "$container")
+    if [[ $ip == 10.6.6.* || $ip == 10.7.7.* ]]; then
+        printf "| %-22s | %-13s |\n" "$container" "$ip"
+    fi
+done
+
+printf "+------------------------+---------------+\n"
+
+# Show running containers with ports and status
+echo -e "\n\e[96mRunning Containers and Port Mappings:\e[39m"
 docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+
+echo -e "\n\e[92mDone.\e[39m"
