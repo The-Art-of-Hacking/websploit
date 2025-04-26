@@ -166,5 +166,5 @@ mv /root/containers.sh /usr/local/bin/containers
 #--------------------------------------------------
 echo "
 [✔] All done! All tools, apps, and containers have been installed and setup.
-Have fun hacking! - Ωr
+Have fun hacking! - Omar (Ωr) Santos
 "
