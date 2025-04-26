@@ -5,7 +5,6 @@
 # Twitter: @santosomar
 # Version: 4.0
 
-
 clear
 echo "
 
