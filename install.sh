@@ -3,7 +3,7 @@
 # Author: Omar Ωr Santos
 # Web: https://websploit.org
 # Twitter: @santosomar
-# Version: 4.0
+# Version: 4.1
 
 
 clear

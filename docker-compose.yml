@@ -50,14 +50,6 @@ services:
       websploit:
         ipv4_address: 10.6.6.16
 
-  hackme-rtov:
-    container_name: hackme-rtov
-    image: santosomar/hackme-rtov
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.17
-
   mayhem:
     container_name: mayhem
     image: santosomar/mayhem
