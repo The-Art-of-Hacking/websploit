@@ -7,29 +7,54 @@
 
 
 clear
-echo "
 
-██╗    ██╗███████╗██████╗ ███████╗██████╗ ██╗      ██████╗ ██╗████████╗
-██║    ██║██╔════╝██╔══██╗██╔════╝██╔══██╗██║     ██╔═══██╗██║╚══██╔══╝
-██║ █╗ ██║█████╗  ██████╔╝███████╗██████╔╝██║     ██║   ██║██║   ██║
-██║███╗██║██╔══╝  ██╔══██╗╚════██║██╔═══╝ ██║     ██║   ██║██║   ██║
-╚███╔███╔╝███████╗██████╔╝███████║██║     ███████╗╚██████╔╝██║   ██║
- ╚══╝╚══╝ ╚══════╝╚═════╝ ╚══════╝╚═╝     ╚══════╝ ╚═════╝ ╚═╝   ╚═╝
-L A B S      B Y     O M A R   S A N T O S 
+print_banner() {
+    # Define Colors and Styles using tput
+    local bold reset blue green yellow cyan
+    bold=$(tput bold)
+    reset=$(tput sgr0) # Resets all attributes
 
-https://websploit.org
-Author: Omar Ωr Santos
-Twitter: @santosomar
-Version: 4.0
+    # Check if terminal supports colors (at least 8)
+    if [[ $(tput colors) -ge 8 ]]; then
+        blue=$(tput setaf 4)
+        # green=$(tput setaf 2) # Uncomment if you want to use green later
+        yellow=$(tput setaf 3) # Good for prompts
+        cyan=$(tput setaf 6)   # Nice for titles or key info
+    else
+        # Set to empty if no color support; bold might still work
+        blue=""
+        green=""
+        yellow=""
+        cyan=""
+        reset=""
+    fi
 
-A collection of tools, tutorials, resources, and intentionally vulnerable 
-applications running in Docker containers. WebSploit Labs include 
-over 500 exercises to learn and practice ethical hacking (penetration testing) skills.
---------------------------------------------------------------------------------------
-"
+    clear
+    # Use cyan for the top/bottom separators and title
+    echo "${bold}${blue}======================================================================${reset}"
+    echo "${bold}${cyan}                WebSploit Labs Installer (v4.0)${reset}"
+    echo "${bold}${blue}======================================================================${reset}"
+    echo # Blank line for spacing
 
+    # Use bold for labels, standard text for values, blue for URL
+    echo " ${bold}Author:${reset}  Omar Ωr Santos"
+    echo " ${bold}Web:${reset}     ${blue}https://websploit.org${reset}" # Make URL stand out
+    echo " ${bold}Twitter:${reset} @santosomar"
+    echo # Blank line
 
-read -n 1 -s -r -p "Press any key to continue the setup..."
+    # Description in standard text
+    echo " This script will install the tools, configurations, and Docker"
+    echo " containers required for the WebSploit Labs learning environment."
+    echo # Blank line
+    echo "----------------------------------------------------------------------"
+    echo # Blank line
+
+    # Use yellow for the prompt to draw attention
+    read -n 1 -s -r -p "${yellow}Press any key to continue the setup...${reset}"
+    echo # Add a newline after the keypress for cleaner subsequent output
+}
+
+print_banner
 
 set -e  # Exit immediately if a command exits with a non-zero status
 set -u  # Treat unset variables as an error
