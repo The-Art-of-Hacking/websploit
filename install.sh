@@ -2,7 +2,7 @@
 # WebSploit installation script
 # Author: Omar Ωr Santos
 # Web: https://websploit.org
-# Twitter: @santosomar
+# X: @santosomar LinkedIn: https://linkedin.com/in/santosomar
 # Version: 4.1
 
 
