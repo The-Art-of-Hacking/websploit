@@ -5,7 +5,7 @@ name: Generate SHA Checksum
 on:
   push:
     branches:
-      - main # Or whichever branch contains install.sh
+      - master # Or whichever branch contains install.sh
     paths:
       - 'install.sh' # Only run if install.sh changes
 
