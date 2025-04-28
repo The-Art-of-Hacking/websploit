@@ -41,5 +41,5 @@ This script will:
 ---
 
 ### Important Notes
-- **Apple M1/M2/M3 Macs are not supported** due to compatibility issues with hypervisors and Docker on ARM architecture.
+- **Apple M-series Macs (running on Apple Silicon) are not supported** due to compatibility issues with hypervisors and Docker on ARM architecture.
 - You can **verify the integrity** of the `install.sh` script by checking its SHA-512 checksum [here](https://websploit.org).
