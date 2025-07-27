@@ -8,3 +8,7 @@ __pycache__
 .eggs
 .env
 
+# misc
+websploit.db
+uploads
+backups
