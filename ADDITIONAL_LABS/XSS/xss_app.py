@@ -610,7 +610,7 @@ if __name__ == '__main__':
     print("🚀 WebSploit Labs - XSS Vulnerable Application")
     print("⚠️  WARNING: This application contains intentional XSS vulnerabilities!")
     print("📚 Educational use only - Created by Omar Santos")
-    print("🌐 Access the application at: http://localhost:5000")
+    print("🌐 Access the application at: http://localhost:5011")
     print("=" * 60)
     print("🎯 XSS Testing Areas:")
     print("   • Reflected XSS: /search, /profile")
@@ -620,4 +620,4 @@ if __name__ == '__main__':
     print("   • API XSS: /api/search, /api/profile")
     print("=" * 60)
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5011, debug=True)

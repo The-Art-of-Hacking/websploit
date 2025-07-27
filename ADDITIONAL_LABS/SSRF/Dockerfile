@@ -4,5 +4,5 @@ WORKDIR /app
 COPY ssrf_app.py .
 RUN pip install flask requests urllib3
 
-EXPOSE 5000
+EXPOSE 5012
 CMD ["python", "ssrf_app.py"]
