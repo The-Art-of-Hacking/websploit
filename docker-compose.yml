@@ -74,14 +74,6 @@ services:
       websploit:
         ipv4_address: 10.6.6.20
 
-  yascon-hackme:
-    container_name: yascon-hackme
-    image: santosomar/yascon-hackme
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.21
-
   secretcorp-branch1:
     container_name: secretcorp-branch1
     image: santosomar/secretcorp-branch1
