@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-WebSploit Labs - SSRF Vulnerable Application
-Created for educational purposes by Omar Santos
-This application demonstrates various SSRF vulnerabilities
+NetProbe Diagnostics Suite
+Internal network analysis and validation tools.
 """
 
 from flask import Flask, request, render_template_string, jsonify
@@ -16,76 +15,345 @@ from urllib3.util.retry import Retry
 
 app = Flask(__name__)
 
-# HTML template for the main page
+# Modern Template
 HTML_TEMPLATE = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>WebSploit Labs - URL Fetcher Service</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetProbe Diagnostics Suite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; text-align: center; }
-        .service { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #007bff; }
-        input[type="text"] { width: 70%; padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
-        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .result { background: #e9ecef; padding: 15px; margin-top: 10px; border-radius: 4px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
-        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        :root {
+            --primary: #0f172a;
+            --secondary: #334155;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+        .navbar {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .brand {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--primary);
+        }
+        .brand-icon {
+            background: var(--accent);
+            color: white;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+        .dashboard-header {
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+        .dashboard-header h1 {
+            font-size: 2rem;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: var(--primary);
+        }
+        .dashboard-header p {
+            color: #64748b;
+            margin-top: 0.75rem;
+            font-size: 1.1rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.5rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+            padding: 1.75rem;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-color: #cbd5e1;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: var(--primary);
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .card p {
+            font-size: 0.925rem;
+            color: #64748b;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: auto;
+        }
+        input[type="text"] {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        button:hover {
+            background-color: var(--accent);
+        }
+        footer {
+            text-align: center;
+            margin-top: 5rem;
+            padding: 2rem;
+            color: #94a3b8;
+            font-size: 0.875rem;
+            border-top: 1px solid var(--border);
+            background: white;
+        }
+        .tag {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            color: #64748b;
+            font-weight: normal;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="brand">
+            <div class="brand-icon">NP</div>
+            NetProbe Enterprise
+        </div>
+        <div style="font-size: 0.875rem; color: #64748b;">v2.4.1</div>
+    </div>
+
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>Diagnostic Toolkit</h1>
+            <p>Secure network analysis and connectivity validation suite.</p>
+        </div>
+        
+        <div class="grid">
+            <!-- Fetcher -->
+            <div class="card">
+                <h3>📡 Content Fetcher <span class="tag">HTTP/1.1</span></h3>
+                <p>Retrieve raw content from internal or external endpoints to verify availability and integrity.</p>
+                <form method="POST" action="/fetch">
+                    <input type="text" name="url" placeholder="http://internal-service:8080" required>
+                    <button type="submit">Fetch Resource</button>
+                </form>
+            </div>
+            
+            <!-- Screenshot -->
+            <div class="card">
+                <h3>📸 Site Visualizer <span class="tag">BETA</span></h3>
+                <p>Generate a metadata snapshot and visual preview structure of target web properties.</p>
+                <form method="POST" action="/screenshot">
+                    <input type="text" name="url" placeholder="https://example.com" required>
+                    <button type="submit">Generate Snapshot</button>
+                </form>
+            </div>
+            
+            <!-- Webhook -->
+            <div class="card">
+                <h3>🔗 Webhook Tester <span class="tag">POST</span></h3>
+                <p>Test webhook integrations by dispatching custom payloads to specified endpoints.</p>
+                <form method="POST" action="/webhook">
+                    <input type="text" name="webhook_url" placeholder="Destination URL" required>
+                    <input type="text" name="data" placeholder="Payload (JSON/Text)" required>
+                    <button type="submit">Dispatch Event</button>
+                </form>
+            </div>
+            
+            <!-- Analyzer -->
+            <div class="card">
+                <h3>📊 Header Analyzer <span class="tag">Deep Scan</span></h3>
+                <p>Inspect HTTP headers, server fingerprints, and structural elements of remote resources.</p>
+                <form method="POST" action="/analyze">
+                    <input type="text" name="target_url" placeholder="https://api.example.com" required>
+                    <button type="submit">Analyze Headers</button>
+                </form>
+            </div>
+            
+            <!-- Validator -->
+            <div class="card">
+                <h3>✅ Link Validator <span class="tag">Quick</span></h3>
+                <p>Validate upstream link status, redirect chains, and server reachability metrics.</p>
+                <form method="POST" action="/validate">
+                    <input type="text" name="link" placeholder="Link to validate" required>
+                    <button type="submit">Check Connectivity</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2023 NetProbe Systems Inc. <br> 
+        Authorized Personnel Only. Access Monitored.
+    </footer>
+</body>
+</html>
+"""
+
+# Template for Results
+RESULT_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic Result - NetProbe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {{
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --bg: #f8fafc;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }}
+        body {{
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }}
+        .container {{
+            background: white;
+            padding: 2.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            max-width: 900px;
+            width: 100%;
+            height: fit-content;
+            border: 1px solid var(--border);
+        }}
+        .header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }}
+        h2 {{ 
+            margin: 0; 
+            color: var(--primary); 
+            font-size: 1.5rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+        }}
+        .output {{
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            border: 1px solid #334155;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }}
+        .btn {{
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            font-size: 0.9rem;
+        }}
+        .btn:hover {{ background-color: var(--accent); }}
+        .status {{
+            font-size: 0.875rem;
+            color: #64748b;
+            font-family: monospace;
+        }}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔧 WebSploit Labs - URL Fetcher Service</h1>
-        <div class="warning">
-            ⚠️ <strong>Educational Environment:</strong> This application contains intentional vulnerabilities for learning purposes.
+        <div class="header">
+            <h2>{title}</h2>
+            <span class="status">STATUS: COMPLETE</span>
         </div>
-        
-        <div class="service">
-            <h3>📡 Web Content Fetcher</h3>
-            <p>Fetch content from any URL for analysis:</p>
-            <form method="POST" action="/fetch">
-                <input type="text" name="url" placeholder="https://example.com" required>
-                <button type="submit">Fetch Content</button>
-            </form>
-        </div>
-        
-        <div class="service">
-            <h3>🔍 Website Screenshot Service</h3>
-            <p>Generate screenshots of websites:</p>
-            <form method="POST" action="/screenshot">
-                <input type="text" name="url" placeholder="https://example.com" required>
-                <button type="submit">Take Screenshot</button>
-            </form>
-        </div>
-        
-        <div class="service">
-            <h3>🌐 Webhook Tester</h3>
-            <p>Test webhook endpoints by sending POST requests:</p>
-            <form method="POST" action="/webhook">
-                <input type="text" name="webhook_url" placeholder="https://webhook.site/your-uuid" required>
-                <input type="text" name="data" placeholder="Test data to send" required>
-                <button type="submit">Send Webhook</button>
-            </form>
-        </div>
-        
-        <div class="service">
-            <h3>📊 URL Metadata Analyzer</h3>
-            <p>Analyze URL metadata and headers:</p>
-            <form method="POST" action="/analyze">
-                <input type="text" name="target_url" placeholder="https://example.com" required>
-                <button type="submit">Analyze URL</button>
-            </form>
-        </div>
-        
-        <div class="service">
-            <h3>🔗 Link Validator</h3>
-            <p>Validate if links are accessible:</p>
-            <form method="POST" action="/validate">
-                <input type="text" name="link" placeholder="https://example.com" required>
-                <button type="submit">Validate Link</button>
-            </form>
-        </div>
+        <div class="output">{content}</div>
+        <a href="/" class="btn">← Return to Dashboard</a>
     </div>
 </body>
 </html>
@@ -122,24 +390,25 @@ def fetch_url():
     url = request.form.get('url', '')
     
     if not url:
-        return "Please provide a URL", 400
+        return render_template_string(RESULT_TEMPLATE.format(title="Error", content="Please provide a valid URL."))
     
     try:
         # VULNERABILITY: No URL validation or filtering
         response = make_request(url)
         if response:
-            content = f"Status Code: {response.status_code}\n"
+            content = f"Target: {url}\n"
+            content += f"Status: {response.status_code} {response.reason}\n"
             content += f"Headers: {dict(response.headers)}\n\n"
-            content += f"Content (first 2000 chars):\n{response.text[:2000]}"
-            return render_template_string(f"""
-                <h2>Fetch Results for: {url}</h2>
-                <div class="result">{content}</div>
-                <a href="/">← Back</a>
-            """)
+            content += f"--- Body Preview (First 2000 bytes) ---\n{response.text[:2000]}"
+            
+            return render_template_string(RESULT_TEMPLATE.format(
+                title="Fetch Result", 
+                content=content
+            ))
         else:
-            return "Failed to fetch URL", 500
+            return render_template_string(RESULT_TEMPLATE.format(title="Request Failed", content="Unable to reach the target host. The host may be down or unreachable."))
     except Exception as e:
-        return f"Error: {str(e)}", 500
+        return render_template_string(RESULT_TEMPLATE.format(title="System Error", content="An internal error occurred while processing the request."))
 
 @app.route('/screenshot', methods=['POST'])
 def screenshot_service():
@@ -147,18 +416,18 @@ def screenshot_service():
     url = request.form.get('url', '')
     
     if not url:
-        return "Please provide a URL", 400
+        return render_template_string(RESULT_TEMPLATE.format(title="Error", content="Please provide a valid URL."))
     
     try:
         # VULNERABILITY: Simulating a screenshot service that makes requests
         response = make_request(url)
         if response:
             # Simulate screenshot generation by fetching the page
-            result = f"Screenshot service accessed: {url}\n"
-            result += f"Page title extraction attempt...\n"
+            result = f"Target: {url}\n"
+            result += f"Action: Generating viewport snapshot...\n"
             result += f"Status: {response.status_code}\n"
-            result += f"Content-Type: {response.headers.get('content-type', 'unknown')}\n"
-            result += f"Content length: {len(response.text)} characters\n"
+            result += f"MIME Type: {response.headers.get('content-type', 'unknown')}\n"
+            result += f"Size: {len(response.text)} bytes\n"
             
             # Try to extract title
             if '<title>' in response.text.lower():
@@ -166,17 +435,18 @@ def screenshot_service():
                 end = response.text.lower().find('</title>', start)
                 if end > start:
                     title = response.text[start:end]
-                    result += f"Extracted title: {title[:100]}\n"
+                    result += f"Page Title: {title[:100]}\n"
             
-            return render_template_string(f"""
-                <h2>Screenshot Service Results</h2>
-                <div class="result">{result}</div>
-                <a href="/">← Back</a>
-            """)
+            result += "\n[Snapshot Metadata Generated Successfully]"
+            
+            return render_template_string(RESULT_TEMPLATE.format(
+                title="Snapshot Result",
+                content=result
+            ))
         else:
-            return "Failed to access URL for screenshot", 500
+            return render_template_string(RESULT_TEMPLATE.format(title="Snapshot Failed", content="Unable to access target URL for rendering."))
     except Exception as e:
-        return f"Screenshot service error: {str(e)}", 500
+        return render_template_string(RESULT_TEMPLATE.format(title="Service Error", content="Snapshot service encountered an unexpected error."))
 
 @app.route('/webhook', methods=['POST'])
 def webhook_tester():
@@ -185,7 +455,7 @@ def webhook_tester():
     data = request.form.get('data', 'test data')
     
     if not webhook_url:
-        return "Please provide a webhook URL", 400
+        return render_template_string(RESULT_TEMPLATE.format(title="Error", content="Webhook URL required."))
     
     try:
         # VULNERABILITY: No validation of webhook URL
@@ -193,20 +463,19 @@ def webhook_tester():
         response = make_request(webhook_url, method='POST', data=payload)
         
         if response:
-            result = f"Webhook sent to: {webhook_url}\n"
-            result += f"Response status: {response.status_code}\n"
-            result += f"Response headers: {dict(response.headers)}\n"
-            result += f"Response body: {response.text[:500]}"
+            result = f"Dispatch Target: {webhook_url}\n"
+            result += f"Delivery Status: {response.status_code}\n"
+            result += f"Remote Headers: {dict(response.headers)}\n"
+            result += f"Remote Response Body:\n{response.text[:500]}"
             
-            return render_template_string(f"""
-                <h2>Webhook Test Results</h2>
-                <div class="result">{result}</div>
-                <a href="/">← Back</a>
-            """)
+            return render_template_string(RESULT_TEMPLATE.format(
+                title="Webhook Delivery Report",
+                content=result
+            ))
         else:
-            return "Failed to send webhook", 500
+            return render_template_string(RESULT_TEMPLATE.format(title="Delivery Failed", content="Could not connect to the webhook listener."))
     except Exception as e:
-        return f"Webhook error: {str(e)}", 500
+        return render_template_string(RESULT_TEMPLATE.format(title="System Error", content="Webhook dispatch service error."))
 
 @app.route('/analyze', methods=['POST'])
 def analyze_url():
@@ -214,39 +483,38 @@ def analyze_url():
     target_url = request.form.get('target_url', '')
     
     if not target_url:
-        return "Please provide a target URL", 400
+        return render_template_string(RESULT_TEMPLATE.format(title="Error", content="Target URL required."))
     
     try:
         # VULNERABILITY: Multiple requests to analyze URL
-        result = f"Analyzing URL: {target_url}\n\n"
+        result = f"Analysis Target: {target_url}\n\n"
         
         # HEAD request to get headers
         head_response = make_request(target_url, method='HEAD')
         if head_response:
-            result += f"HEAD Request Results:\n"
+            result += f"[HEAD Probe]\n"
             result += f"Status: {head_response.status_code}\n"
             result += f"Headers: {dict(head_response.headers)}\n\n"
         
         # GET request to analyze content
         get_response = make_request(target_url)
         if get_response:
-            result += f"GET Request Results:\n"
-            result += f"Content-Length: {len(get_response.text)}\n"
-            result += f"Apparent encoding: {get_response.encoding}\n"
+            result += f"[Content Scan]\n"
+            result += f"Size: {len(get_response.text)} bytes\n"
+            result += f"Encoding: {get_response.encoding}\n"
             
             # Analyze for common elements
             content_lower = get_response.text.lower()
-            result += f"Contains forms: {'Yes' if '<form' in content_lower else 'No'}\n"
-            result += f"Contains scripts: {'Yes' if '<script' in content_lower else 'No'}\n"
-            result += f"Contains images: {'Yes' if '<img' in content_lower else 'No'}\n"
+            result += f"Detected Forms: {'Yes' if '<form' in content_lower else 'No'}\n"
+            result += f"Detected Scripts: {'Yes' if '<script' in content_lower else 'No'}\n"
+            result += f"Detected Images: {'Yes' if '<img' in content_lower else 'No'}\n"
         
-        return render_template_string(f"""
-            <h2>URL Analysis Results</h2>
-            <div class="result">{result}</div>
-            <a href="/">← Back</a>
-        """)
+        return render_template_string(RESULT_TEMPLATE.format(
+            title="Analysis Report",
+            content=result
+        ))
     except Exception as e:
-        return f"Analysis error: {str(e)}", 500
+        return render_template_string(RESULT_TEMPLATE.format(title="Analysis Error", content="Failed to complete the analysis sequence."))
 
 @app.route('/validate', methods=['POST'])
 def validate_link():
@@ -254,37 +522,36 @@ def validate_link():
     link = request.form.get('link', '')
     
     if not link:
-        return "Please provide a link", 400
+        return render_template_string(RESULT_TEMPLATE.format(title="Error", content="Link required for validation."))
     
     try:
         # VULNERABILITY: Link validation that makes actual requests
-        result = f"Validating link: {link}\n\n"
+        result = f"Validating: {link}\n\n"
         
         # Check if URL is reachable
         response = make_request(link, timeout=5)
         if response:
-            result += f"✓ Link is accessible\n"
+            result += f"✓ Connectivity Confirmed\n"
             result += f"Status Code: {response.status_code}\n"
-            result += f"Final URL (after redirects): {response.url}\n"
-            result += f"Server: {response.headers.get('server', 'Unknown')}\n"
+            result += f"Resolution URL: {response.url}\n"
+            result += f"Server Header: {response.headers.get('server', 'Unknown')}\n"
             result += f"Content-Type: {response.headers.get('content-type', 'Unknown')}\n"
             
             # Additional "validation" checks
             if response.status_code == 200:
-                result += f"✓ Returns successful response\n"
+                result += f"✓ Upstream returned healthy status (200)\n"
             if 'text/html' in response.headers.get('content-type', ''):
-                result += f"✓ Appears to be a valid webpage\n"
+                result += f"✓ Content identified as web document\n"
                 
         else:
-            result += f"✗ Link is not accessible or timed out\n"
+            result += f"✗ Link Unreachable (Connection Timeout or Refused)\n"
         
-        return render_template_string(f"""
-            <h2>Link Validation Results</h2>
-            <div class="result">{result}</div>
-            <a href="/">← Back</a>
-        """)
+        return render_template_string(RESULT_TEMPLATE.format(
+            title="Validation Output",
+            content=result
+        ))
     except Exception as e:
-        return f"Validation error: {str(e)}", 500
+        return render_template_string(RESULT_TEMPLATE.format(title="System Error", content="Validation process terminated unexpectedly."))
 
 # Additional endpoint for advanced SSRF testing
 @app.route('/api/proxy', methods=['GET', 'POST'])
@@ -325,10 +592,4 @@ def health_check():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
-    print("🚀 WebSploit Labs - SSRF Vulnerable Application")
-    print("⚠️  WARNING: This application contains intentional vulnerabilities!")
-    print("📚 Educational use only - Created by Omar Santos")
-    print("🌐 Access the application at: http://localhost:5012")
-    print("=" * 60)
-    
     app.run(host='0.0.0.0', port=5012, debug=True)
