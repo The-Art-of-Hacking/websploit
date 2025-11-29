@@ -80,10 +80,6 @@ def index():
         </div>
         
         <div style="margin-top: 50px; font-size: 0.8em; color: #666;">
-            <p><strong>Lab Info:</strong> This application is vulnerable to Path Traversal (Directory Traversal).</p>
-            <p>The application reads files from the <code>files/</code> directory.</p>
-            <p>Try to access files outside this directory using <code>../</code> sequences.</p>
-            <p>Example: <code>?file=../../../../etc/passwd</code></p>
         </div>
     </body>
     </html>
