@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+
+  # Multi-Vulnerability Gauntlet Container
+  multi-vuln-lab:
+    container_name: multi-vuln-lab
+    build: ./Multi-Vulnerability-Gauntlet
+    restart: unless-stopped
+    networks:
+      websploit-containers:
+        ipv4_address: 10.66.66.22
+    ports:
+      - "5010:5010"
+
+  # XSS Lab Container
+  xss-lab:
+    container_name: xss-lab
+    build: ./XSS
+    restart: unless-stopped
+    networks:
+      websploit-containers:
+        ipv4_address: 10.66.66.23
+    ports:
+      - "5011:5011"
+
+  # SSRF Lab Container
+  ssrf-lab:
+    container_name: ssrf-lab
+    build: ./SSRF
+    restart: unless-stopped
+    networks:
+      websploit-containers:
+        ipv4_address: 10.66.66.24
+    ports:
+      - "5012:5012"
+
+  # SQL Injection Lab Container
+  sqli-lab:
+    container_name: sqli-lab
+    build: ./SQLi
+    restart: unless-stopped
+    networks:
+      websploit-containers:
+        ipv4_address: 10.66.66.25
+    ports:
+      - "5001:5000" # Mapping 5000 to 5001 on host to avoid conflicts if needed, or just expose
+
+  # Command Injection Lab Container
+  cmd-injection-lab:
+    container_name: cmd-injection-lab
+    build: ./Command_Injection
+    restart: unless-stopped
+    networks:
+      websploit-containers:
+        ipv4_address: 10.66.66.26
+    ports:
+      - "5002:5000"
+
+  # Path Traversal Lab Container
+  path-traversal-lab:
+    container_name: path-traversal-lab
+    build: ./Path_Traversal
+    restart: unless-stopped
+    networks:
+      websploit-containers:
+        ipv4_address: 10.66.66.27
+    ports:
+      - "5003:81"
+
+# Network configuration
+networks:
+  websploit-containers:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.66.66.0/24
+          gateway: 10.66.66.1
