@@ -1,14 +1,11 @@
 # cmd-injection-example-app.py
-## Created for educational purposes by Omar Santos
+# Internal Network Tool
 
-# Importing the necessary modules
 from flask import Flask, request, render_template_string
 import subprocess
 
-# Creating the Flask app
 app = Flask(__name__)
 
-# Defining the route for the home page
 @app.route('/', methods=['GET', 'POST'])
 def index():
     output = ''
@@ -18,14 +15,9 @@ def index():
     if request.method == 'POST':
         target = request.form.get('target', '')
         if target:
-            # VULNERABILITY: The input is passed directly to a shell command.
-            # Using shell=True allows command chaining with ; | && etc.
             command = f"ping -c 3 {target}"
             
             try:
-                # capture_output=True captures stdout and stderr
-                # text=True returns string instead of bytes
-                # shell=True is the key vulnerability here
                 proc = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=10)
                 
                 if proc.returncode == 0:
@@ -44,198 +36,128 @@ def index():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Network Diagnostics Tool</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+        <title>NetOps | Connectivity Check</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
         <style>
             :root {
-                --bg-color: #0f172a;
-                --card-bg: #1e293b;
-                --text-primary: #f8fafc;
-                --text-secondary: #94a3b8;
+                --primary: #0f172a;
+                --secondary: #1e293b;
                 --accent: #3b82f6;
-                --accent-hover: #2563eb;
-                --error: #ef4444;
-                --success: #22c55e;
-                --terminal-bg: #000000;
+                --text: #e2e8f0;
+                --text-muted: #94a3b8;
+                --border: #334155;
             }
-            
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            
             body {
-                font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                background-color: var(--bg-color);
-                color: var(--text-primary);
-                line-height: 1.5;
-                min-height: 100vh;
+                background-color: var(--primary);
+                color: var(--text);
+                font-family: 'Inter', sans-serif;
+                margin: 0;
                 display: flex;
-                flex-direction: column;
-                align-items: center;
-                padding: 40px 20px;
+                justify-content: center;
+                min-height: 100vh;
+                padding-top: 80px;
             }
-            
-            .main-container {
+            .container {
                 width: 100%;
-                max-width: 800px;
-                background: var(--card-bg);
-                border-radius: 12px;
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-                padding: 40px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                max-width: 700px;
+                padding: 2rem;
             }
-            
+            .card {
+                background: var(--secondary);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 2rem;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
             h1 {
-                font-size: 1.875rem;
+                font-size: 1.5rem;
                 font-weight: 600;
                 margin-bottom: 0.5rem;
-                background: linear-gradient(to right, #60a5fa, #3b82f6);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
+                color: white;
             }
-            
-            .subtitle {
-                color: var(--text-secondary);
+            p.subtitle {
+                color: var(--text-muted);
                 margin-bottom: 2rem;
+                font-size: 0.95rem;
             }
-            
             .input-group {
                 display: flex;
-                gap: 10px;
-                margin-bottom: 2rem;
+                gap: 0.75rem;
+                margin-bottom: 1.5rem;
             }
-            
-            input[type="text"] {
+            input {
                 flex: 1;
-                background: rgba(15, 23, 42, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                color: var(--text-primary);
-                padding: 12px 16px;
-                border-radius: 8px;
+                background: #0f172a;
+                border: 1px solid var(--border);
+                padding: 0.75rem 1rem;
+                border-radius: 6px;
+                color: white;
                 font-family: 'JetBrains Mono', monospace;
-                font-size: 1rem;
-                transition: all 0.2s;
+                font-size: 0.9rem;
             }
-            
-            input[type="text"]:focus {
+            input:focus {
                 outline: none;
                 border-color: var(--accent);
-                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+                ring: 1px solid var(--accent);
             }
-            
             button {
                 background: var(--accent);
                 color: white;
                 border: none;
-                padding: 0 24px;
-                border-radius: 8px;
+                padding: 0 1.5rem;
+                border-radius: 6px;
                 font-weight: 500;
                 cursor: pointer;
-                transition: background-color 0.2s;
+                transition: background 0.2s;
             }
-            
             button:hover {
-                background: var(--accent-hover);
+                background: #2563eb;
             }
-            
-            .terminal-window {
-                background: var(--terminal-bg);
-                border-radius: 8px;
-                overflow: hidden;
-                margin-top: 2rem;
-                border: 1px solid #333;
-                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            }
-            
-            .terminal-header {
-                background: #1a1a1a;
-                padding: 8px 16px;
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                border-bottom: 1px solid #333;
-            }
-            
-            .dot { width: 12px; height: 12px; border-radius: 50%; }
-            .dot.red { background: #ff5f56; }
-            .dot.yellow { background: #ffbd2e; }
-            .dot.green { background: #27c93f; }
-            
-            .terminal-content {
-                padding: 16px;
+            .terminal {
+                background: #000;
+                border-radius: 6px;
+                padding: 1rem;
                 font-family: 'JetBrains Mono', monospace;
-                font-size: 0.9rem;
-                overflow-x: auto;
+                font-size: 0.85rem;
+                margin-top: 1.5rem;
+                border: 1px solid var(--border);
                 white-space: pre-wrap;
             }
-            
-            .output-success { color: #4ade80; }
-            .output-error { color: #f87171; }
-            
-            .info-box {
-                margin-top: 3rem;
-                padding: 16px;
-                background: rgba(59, 130, 246, 0.1);
-                border: 1px solid rgba(59, 130, 246, 0.2);
-                border-radius: 8px;
-                font-size: 0.9rem;
-                color: var(--text-secondary);
-            }
-            
-            code {
-                background: rgba(0, 0, 0, 0.3);
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-family: 'JetBrains Mono', monospace;
-                color: var(--accent);
+            .stdout { color: #4ade80; }
+            .stderr { color: #f87171; }
+            footer {
+                margin-top: 2rem;
+                text-align: center;
+                color: var(--text-muted);
+                font-size: 0.8rem;
             }
         </style>
     </head>
     <body>
-        <div class="main-container">
-            <h1>Network Diagnostics</h1>
-            <p class="subtitle">Secure Enterprise Ping Utility</p>
-            
-            <form method="POST">
-                <div class="input-group">
-                    <input type="text" name="target" placeholder="Enter IP address (e.g., 8.8.8.8)" value="{{ target }}" autocomplete="off">
-                    <button type="submit">
-                        Execute Ping
-                    </button>
-                </div>
-            </form>
-            
-            {% if error %}
-                <div class="terminal-window">
-                    <div class="terminal-header">
-                        <div class="dot red"></div>
-                        <div class="dot yellow"></div>
-                        <div class="dot green"></div>
-                        <span style="margin-left: 10px; font-size: 12px; color: #666;">stderr</span>
+        <div class="container">
+            <div class="card">
+                <h1>NetOps Connectivity Dashboard</h1>
+                <p class="subtitle">Internal network diagnostic utility for authorized personnel only.</p>
+                
+                <form method="POST">
+                    <div class="input-group">
+                        <input type="text" name="target" placeholder="Enter Hostname or IP" value="{{ target }}" required autocomplete="off">
+                        <button type="submit">Ping Host</button>
                     </div>
-                    <pre class="terminal-content output-error">{{ error }}</pre>
-                </div>
-            {% endif %}
+                </form>
 
-            {% if output %}
-                <div class="terminal-window">
-                    <div class="terminal-header">
-                        <div class="dot red"></div>
-                        <div class="dot yellow"></div>
-                        <div class="dot green"></div>
-                        <span style="margin-left: 10px; font-size: 12px; color: #666;">stdout</span>
-                    </div>
-                    <pre class="terminal-content output-success">{{ output }}</pre>
-                </div>
-            {% endif %}
-            
-            <div class="info-box">
-                <p><strong>⚠️ Security Training Lab:</strong> This application contains a Command Injection vulnerability.</p>
-                <p style="margin-top: 8px">Payload examples:</p>
-                <ul style="margin-left: 20px; margin-top: 4px;">
-                    <li><code>127.0.0.1; ls -la</code></li>
-                    <li><code>127.0.0.1 && whoami</code></li>
-                    <li><code>127.0.0.1 | cat /etc/passwd</code></li>
-                </ul>
+                {% if output %}
+                <div class="terminal stdout">{{ output }}</div>
+                {% endif %}
+                
+                {% if error %}
+                <div class="terminal stderr">{{ error }}</div>
+                {% endif %}
             </div>
+            <footer>
+                &copy; 2024 NetOps Infrastructure Team. All rights reserved. <br>
+                Authorized access only. Activity is logged.
+            </footer>
         </div>
     </body>
     </html>
@@ -244,4 +166,3 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-

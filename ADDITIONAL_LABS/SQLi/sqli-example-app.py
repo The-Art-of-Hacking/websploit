@@ -31,7 +31,6 @@ def init_db():
 def login():
     result = None
     error = None
-    query_log = None
     
     if request.method == 'POST':
         username = request.form.get('username', '')
@@ -42,11 +41,9 @@ def login():
         
         # VULNERABILITY: Constructing SQL query using string formatting
         query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
-        query_log = query
         
         try:
-            cursor.executescript(query) # executescript allows multiple statements (more dangerous), though fetchall gets the first result set usually
-            # For standard login bypass, execute is enough, but let's stick to the classic select
+            cursor.executescript(query) # executescript allows multiple statements (more dangerous)
             # Re-running as standard execute for the select part if script didn't return rows directly in this context
             cursor.execute(query)
             user = cursor.fetchone()
@@ -60,63 +57,163 @@ def login():
 
     template = """
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <title>SQL Injection Example</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Secure Corporate Portal</title>
         <style>
-            body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-            .container { border: 1px solid #ccc; padding: 20px; border-radius: 5px; }
-            input[type="text"], input[type="password"] { padding: 8px; width: 300px; margin-bottom: 10px; display: block; }
-            button { padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; }
-            .success { background: #d4edda; color: #155724; padding: 10px; border-radius: 3px; }
-            .error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 3px; }
-            .debug { background: #f8f9fa; padding: 10px; border: 1px dashed #999; margin-top: 20px; font-family: monospace; }
+            :root {
+                --primary: #0f172a;
+                --primary-hover: #1e293b;
+                --accent: #3b82f6;
+                --bg: #f1f5f9;
+                --surface: #ffffff;
+                --text: #334155;
+                --border: #e2e8f0;
+                --error: #ef4444;
+                --success: #10b981;
+            }
+            body {
+                font-family: 'Inter', system-ui, -apple-system, sans-serif;
+                background-color: var(--bg);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                color: var(--text);
+            }
+            .login-card {
+                background: var(--surface);
+                width: 100%;
+                max-width: 400px;
+                padding: 2.5rem;
+                border-radius: 1rem;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+                border: 1px solid var(--border);
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+            .header h1 {
+                color: var(--primary);
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin: 0;
+                letter-spacing: -0.025em;
+            }
+            .header p {
+                color: #64748b;
+                font-size: 0.875rem;
+                margin-top: 0.5rem;
+            }
+            .form-group {
+                margin-bottom: 1.25rem;
+            }
+            .form-group label {
+                display: block;
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: var(--primary);
+                margin-bottom: 0.5rem;
+            }
+            .form-group input {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                border: 1px solid var(--border);
+                border-radius: 0.5rem;
+                font-size: 0.95rem;
+                transition: all 0.2s;
+                box-sizing: border-box;
+            }
+            .form-group input:focus {
+                outline: none;
+                border-color: var(--accent);
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+            button {
+                width: 100%;
+                background-color: var(--primary);
+                color: white;
+                padding: 0.75rem;
+                border: none;
+                border-radius: 0.5rem;
+                font-weight: 600;
+                font-size: 0.95rem;
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+            button:hover {
+                background-color: var(--primary-hover);
+            }
+            .message {
+                margin-top: 1.5rem;
+                padding: 1rem;
+                border-radius: 0.5rem;
+                font-size: 0.875rem;
+                display: flex;
+                align-items: center;
+            }
+            .error {
+                background-color: #fef2f2;
+                color: var(--error);
+                border: 1px solid #fecaca;
+            }
+            .success {
+                background-color: #ecfdf5;
+                color: var(--success);
+                border: 1px solid #a7f3d0;
+            }
+            .footer {
+                margin-top: 2rem;
+                text-align: center;
+                font-size: 0.75rem;
+                color: #94a3b8;
+            }
         </style>
     </head>
     <body>
-        <div class="container">
-            <h1>Login Portal</h1>
-            <p>Please enter your credentials to access the secure area.</p>
-            
+        <div class="login-card">
+            <div class="header">
+                <h1>Employee Portal</h1>
+                <p>Please sign in to access internal resources</p>
+            </div>
             <form method="POST">
-                <label>Username:</label>
-                <input type="text" name="username" placeholder="admin">
-                <label>Password:</label>
-                <input type="password" name="password" placeholder="password">
-                <button type="submit">Login</button>
-            </form>
-            
-            {% if error %}
-                <div class="error" style="margin-top: 20px;">
-                    {{ error }}
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
                 </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <button type="submit">Sign In</button>
+            </form>
+
+            {% if error %}
+            <div class="message error">
+                {{ error }}
+            </div>
             {% endif %}
 
             {% if result %}
-                <div class="success" style="margin-top: 20px;">
-                    <h3>Success!</h3>
-                    <p>{{ result }}</p>
-                </div>
+            <div class="message success">
+                {{ result }}
+            </div>
             {% endif %}
-            
-            {% if query_log %}
-                <div class="debug">
-                    <strong>Debug (Executed Query):</strong><br>
-                    {{ query_log }}
-                </div>
-            {% endif %}
-        </div>
-        <div style="margin-top: 50px; font-size: 0.8em; color: #666;">
-            <p><strong>Lab Info:</strong> This login form is vulnerable to SQL Injection (SQLi).</p>
-            <p>Try to bypass authentication using: <code>' OR '1'='1</code></p>
+
+            <div class="footer">
+                &copy; 2025 SecureCorp Global Services. <br>Authorized personnel only.
+            </div>
         </div>
     </body>
     </html>
     """
-    return render_template_string(template, result=result, error=error, query_log=query_log)
+    return render_template_string(template, result=result, error=error)
 
 if __name__ == '__main__':
     if not os.path.exists(DATABASE):
         init_db()
     app.run(host='0.0.0.0', port=5000)
-
