@@ -30,6 +30,23 @@ This directory contains an additional collection of vulnerable web applications 
    ```bash
    docker-compose up --build -d
    ```
+   Note: The ports are not the same as the ones in the WebSploit Labs.
+
+On a mac you can use the following commands:
+Start the containers:
+```bash
+docker compose -f docker-compose.yml up -d
+```
+
+Stop the containers:
+```bash
+docker compose down
+```
+
+Remove all the images:
+```bash
+docker rmi $(docker images -q)
+```
 
 3. Verify containers are running:
    ```bash
