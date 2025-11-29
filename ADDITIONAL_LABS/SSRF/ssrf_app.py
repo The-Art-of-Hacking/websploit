@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NetProbe Diagnostics Suite
+SecretCorp Diagnostics Suite
 Internal network analysis and validation tools.
 """
 
@@ -22,7 +22,7 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NetProbe Diagnostics Suite</title>
+    <title>SecretCorp Diagnostics Suite</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -187,7 +187,7 @@ HTML_TEMPLATE = """
     <div class="navbar">
         <div class="brand">
             <div class="brand-icon">NP</div>
-            NetProbe Enterprise
+            SecretCorp Enterprise
         </div>
         <div style="font-size: 0.875rem; color: #64748b;">v2.4.1</div>
     </div>
@@ -253,7 +253,7 @@ HTML_TEMPLATE = """
     </div>
 
     <footer>
-        &copy; 2023 NetProbe Systems Inc. <br> 
+        &copy; 2026 Omar Santos. All rights reserved. <br> 
         Authorized Personnel Only. Access Monitored.
     </footer>
 </body>
@@ -267,7 +267,7 @@ RESULT_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diagnostic Result - NetProbe</title>
+    <title>Diagnostic Result - SecretCorp</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {{

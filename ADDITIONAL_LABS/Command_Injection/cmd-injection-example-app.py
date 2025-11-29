@@ -155,7 +155,7 @@ def index():
                 {% endif %}
             </div>
             <footer>
-                &copy; 2024 NetOps Infrastructure Team. All rights reserved. <br>
+                &copy; 2026 Omar Santos. All rights reserved. <br>
                 Authorized access only. Activity is logged.
             </footer>
         </div>

@@ -215,7 +215,7 @@ def index():
                 </ul>
                 
                 <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.8rem; color: #999;">
-                    &copy; 2023 DocuShare Inc.<br>Internal Use Only
+                    &copy; 2026 Omar Santos. All rights reserved. <br>Internal Use Only
                 </div>
             </aside>
             <main class="content-area">
