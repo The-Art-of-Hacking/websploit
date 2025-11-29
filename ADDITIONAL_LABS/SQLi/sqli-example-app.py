@@ -205,7 +205,7 @@ def login():
             {% endif %}
 
             <div class="footer">
-                &copy; 2025 SecureCorp Global Services. <br>Authorized personnel only.
+                &copy; 2026 WebSploit Labs. <br>Authorized personnel only.
             </div>
         </div>
     </body>

@@ -1,4 +1,6 @@
-version: "3.9"
+# docker-compose.yml
+# Created for educational purposes by Omar Santos
+# This file is used to start the containers for the additional labs
 
 services:
 

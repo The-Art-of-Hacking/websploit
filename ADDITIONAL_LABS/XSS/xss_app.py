@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-WebSploit Labs - XSS Vulnerable Application
-Created for educational purposes by Omar Santos
-This application demonstrates various XSS vulnerabilities
+SecretCorp Application
 """
 
 from flask import Flask, request, render_template_string, jsonify, make_response, redirect, url_for, session
@@ -14,9 +12,9 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'websploit-labs-secret-key-for-education'
+app.secret_key = 'SecretCorp-secret-key'
 
-# In-memory storage for demo purposes
+# In-memory storage
 comments = []
 user_profiles = {}
 search_history = []
@@ -25,73 +23,87 @@ messages = []
 # HTML template for the main page
 HTML_TEMPLATE = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>WebSploit Labs - Social Platform</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecretCorp</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; text-align: center; margin-bottom: 30px; }
-        .nav { background: #007bff; padding: 15px; margin: -30px -30px 30px -30px; border-radius: 10px 10px 0 0; }
-        .nav a { color: white; text-decoration: none; margin-right: 20px; padding: 8px 15px; border-radius: 4px; }
-        .nav a:hover { background: rgba(255,255,255,0.2); }
-        .section { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #007bff; }
-        input[type="text"], textarea { width: 70%; padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 4px; }
-        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
-        button:hover { background: #0056b3; }
-        .result { background: #e9ecef; padding: 15px; margin-top: 10px; border-radius: 4px; }
-        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px; border-radius: 4px; margin: 10px 0; }
-        .comment { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; }
-        .comment-meta { color: #666; font-size: 0.9em; margin-bottom: 10px; }
-        .profile { background: #e3f2fd; padding: 15px; margin: 10px 0; border-radius: 8px; }
-        .search-result { background: #f8f9fa; padding: 10px; margin: 5px 0; border-radius: 4px; border-left: 3px solid #007bff; }
-        .message { background: #fff3e0; padding: 10px; margin: 5px 0; border-radius: 4px; }
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f9fafb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+        }
+        body { font-family: 'Inter', sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+        .nav { background: white; padding: 0 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 10; }
+        .nav-content { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; height: 64px; }
+        .nav-logo { font-weight: 700; font-size: 1.25rem; color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-links a { color: var(--text-light); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--primary); }
+        
+        .hero { text-align: center; padding: 60px 20px; }
+        .hero h1 { font-size: 3rem; margin-bottom: 16px; color: #111827; }
+        .hero p { font-size: 1.25rem; color: var(--text-light); max-width: 600px; margin: 0 auto; }
+        
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin-top: 40px; }
+        .feature-card { background: var(--card); padding: 24px; border-radius: 12px; border: 1px solid var(--border); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .feature-icon { font-size: 2rem; margin-bottom: 16px; display: block; }
+        .feature-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 8px; display: block; }
+        .feature-desc { color: var(--text-light); font-size: 0.95rem; }
     </style>
-    <script>
-        function searchUsers() {
-            const query = document.getElementById('searchInput').value;
-            fetch('/api/search?q=' + encodeURIComponent(query))
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('searchResults').innerHTML = data.html;
-                });
-        }
-        
-        function loadProfile(username) {
-            window.location.href = '/profile?user=' + username;
-        }
-        
-        function showMessage(msg) {
-            alert('Message: ' + msg);
-        }
-    </script>
 </head>
 <body>
+    <div class="nav">
+        <div class="nav-content">
+            <a href="/" class="nav-logo">
+                SecretCorp
+            </a>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/comments">Discussion</a>
+                <a href="/profile">Profile</a>
+                <a href="/search">Search</a>
+                <a href="/messages">Messages</a>
+                <a href="/admin">Admin</a>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
-        <div class="nav">
-            <a href="/">🏠 Home</a>
-            <a href="/comments">💬 Comments</a>
-            <a href="/profile">👤 Profile</a>
-            <a href="/search">🔍 Search</a>
-            <a href="/messages">📧 Messages</a>
-            <a href="/admin">⚙️ Admin</a>
+        <div class="hero">
+            <h1>Connect with friends</h1>
+            <p>Share your thoughts, follow your interests, and discover new people on SecretCorp.</p>
         </div>
         
-        <h1>🌐 WebSploit Labs - Social Platform</h1>
-        <div class="warning">
-            ⚠️ <strong>Educational Environment:</strong> This application contains intentional XSS vulnerabilities for learning purposes.
-        </div>
-        
-        <div class="section">
-            <h3>🎯 Available XSS Testing Areas</h3>
-            <p>Explore different XSS vulnerability types:</p>
-            <ul>
-                <li><strong>Reflected XSS</strong> - Search functionality and URL parameters</li>
-                <li><strong>Stored XSS</strong> - Comment system and user profiles</li>
-                <li><strong>DOM XSS</strong> - Client-side JavaScript processing</li>
-                <li><strong>Context-based XSS</strong> - Different injection contexts</li>
-            </ul>
+        <div class="features">
+            <div class="feature-card" onclick="window.location.href='/search'">
+                <span class="feature-icon">🔍</span>
+                <span class="feature-title">Discover</span>
+                <span class="feature-desc">Search for friends, posts, and trending topics across the platform.</span>
+            </div>
+            <div class="feature-card" onclick="window.location.href='/comments'">
+                <span class="feature-icon">💬</span>
+                <span class="feature-title">Discuss</span>
+                <span class="feature-desc">Join conversations and share your opinions with the community.</span>
+            </div>
+            <div class="feature-card" onclick="window.location.href='/profile'">
+                <span class="feature-icon">👤</span>
+                <span class="feature-title">Personalize</span>
+                <span class="feature-desc">Customize your profile and let people know who you are.</span>
+            </div>
+            <div class="feature-card" onclick="window.location.href='/messages'">
+                <span class="feature-icon">📧</span>
+                <span class="feature-title">Connect</span>
+                <span class="feature-desc">Send private messages to friends and colleagues.</span>
+            </div>
         </div>
     </div>
 </body>
@@ -108,65 +120,82 @@ def search_page():
     query = request.args.get('q', '')
     filter_type = request.args.get('type', 'all')
     
-    # VULNERABILITY 1: Reflected XSS in search parameter
     search_html = f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <title>Search Results</title>
+        <meta charset="UTF-8">
+        <title>Search - SecretCorp</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            .search-box {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
-            .result {{ background: white; padding: 15px; margin: 10px 0; border-radius: 4px; border: 1px solid #ddd; }}
-            .no-results {{ color: #666; font-style: italic; }}
-            input {{ padding: 10px; width: 300px; border: 1px solid #ddd; border-radius: 4px; }}
-            button {{ background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }}
+            body {{ font-family: 'Inter', sans-serif; margin: 0; background: #f9fafb; color: #1f2937; }}
+            .nav {{ background: white; padding: 0 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
+            .nav-content {{ max-width: 1100px; margin: 0 auto; height: 64px; display: flex; align-items: center; }}
+            .nav-logo {{ font-weight: 700; color: #4f46e5; text-decoration: none; margin-right: 30px; }}
+            .container {{ max-width: 800px; margin: 40px auto; padding: 0 20px; }}
+            .search-box {{ background: white; padding: 30px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 30px; }}
+            .search-form {{ display: flex; gap: 10px; }}
+            input[type="text"] {{ flex: 1; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 1rem; }}
+            select {{ padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; background: white; }}
+            button {{ background: #4f46e5; color: white; border: none; padding: 0 24px; border-radius: 6px; font-weight: 500; cursor: pointer; }}
+            button:hover {{ background: #4338ca; }}
+            .results-header {{ margin-bottom: 20px; }}
+            .result-card {{ background: white; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 16px; }}
+            .result-title {{ font-weight: 600; margin-bottom: 4px; color: #111827; }}
+            .result-meta {{ color: #6b7280; font-size: 0.875rem; }}
+            .no-results {{ text-align: center; color: #6b7280; padding: 40px; }}
+            .back-link {{ display: block; margin-top: 20px; color: #6b7280; text-decoration: none; }}
         </style>
     </head>
     <body>
-        <h2>🔍 Search Platform</h2>
-        <div class="search-box">
-            <form method="GET">
-                <input type="text" name="q" value="{query}" placeholder="Search users, posts, comments...">
-                <select name="type">
-                    <option value="all" {'selected' if filter_type == 'all' else ''}>All</option>
-                    <option value="users" {'selected' if filter_type == 'users' else ''}>Users</option>
-                    <option value="posts" {'selected' if filter_type == 'posts' else ''}>Posts</option>
-                </select>
-                <button type="submit">Search</button>
-            </form>
+        <div class="nav">
+            <div class="nav-content">
+                <a href="/" class="nav-logo">SecretCorp</a>
+            </div>
         </div>
-        
-        <div class="results">
-            <h3>Search Results for: {query}</h3>
+        <div class="container">
+            <div class="search-box">
+                <form method="GET" class="search-form">
+                    <input type="text" name="q" value="{query}" placeholder="Search users, posts, or topics...">
+                    <select name="type">
+                        <option value="all" {'selected' if filter_type == 'all' else ''}>All</option>
+                        <option value="users" {'selected' if filter_type == 'users' else ''}>People</option>
+                        <option value="posts" {'selected' if filter_type == 'posts' else ''}>Posts</option>
+                    </select>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+            
+            <div class="results">
     """
     
     if query:
-        # Simulate search results with XSS vulnerability
         search_html += f"""
-            <div class="result">
-                <h4>User Profile: {query}</h4>
-                <p>Showing results for search term: <strong>{query}</strong></p>
-                <p>Filter applied: {filter_type}</p>
+            <div class="results-header">
+                <h3>Results for "{query}"</h3>
             </div>
-            <div class="result">
-                <h4>Recent Post</h4>
-                <p>Found post containing "{query}" by user123</p>
+            <div class="result-card">
+                <div class="result-title">User Profile: {query}</div>
+                <div class="result-meta">Found in People • {filter_type}</div>
+            </div>
+            <div class="result-card">
+                <div class="result-title">Discussion about {query}</div>
+                <div class="result-meta">Found in Posts • Posted 2 hours ago</div>
             </div>
         """
         
-        # Store search history (another XSS vector)
         search_history.append({
             'query': query,
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'filter': filter_type
         })
     else:
-        search_html += '<div class="no-results">Enter a search term to find content...</div>'
+        search_html += '<div class="no-results">Enter a keyword to start searching</div>'
     
     search_html += """
+            </div>
+            <a href="/" class="back-link">← Back to Home</a>
         </div>
-        <p><a href="/">← Back to Home</a></p>
     </body>
     </html>
     """
@@ -178,19 +207,28 @@ def profile_page():
     username = request.args.get('user', 'guest')
     bio = request.args.get('bio', '')
     
-    # VULNERABILITY 2: Reflected XSS in profile parameters
     profile_html = f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <title>User Profile - {username}</title>
+        <meta charset="UTF-8">
+        <title>{username} - Profile</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            .profile-header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 20px; }}
-            .profile-info {{ background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
-            .edit-form {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; }}
-            input, textarea {{ width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }}
-            button {{ background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }}
+            body {{ font-family: 'Inter', sans-serif; margin: 0; background: #f3f4f6; color: #1f2937; }}
+            .cover {{ height: 200px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }}
+            .container {{ max-width: 900px; margin: -60px auto 40px; padding: 0 20px; position: relative; }}
+            .profile-card {{ background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }}
+            .profile-header {{ padding: 30px; text-align: center; border-bottom: 1px solid #e5e7eb; }}
+            .avatar {{ width: 120px; height: 120px; background: white; border-radius: 50%; margin: -90px auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 4px solid white; }}
+            .username {{ font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }}
+            .meta {{ color: #6b7280; font-size: 0.9rem; margin-bottom: 20px; }}
+            .bio-section {{ padding: 30px; }}
+            .bio-content {{ background: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 30px; }}
+            .edit-section {{ border-top: 1px solid #e5e7eb; padding: 30px; background: #fafafa; }}
+            textarea {{ width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; margin-bottom: 10px; box-sizing: border-box; font-family: inherit; }}
+            .btn {{ background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500; }}
+            .nav-link {{ display: inline-block; margin-top: 20px; color: #6b7280; text-decoration: none; margin-right: 20px; }}
         </style>
         <script>
             function updateProfile() {{
@@ -200,29 +238,33 @@ def profile_page():
         </script>
     </head>
     <body>
-        <div class="profile-header">
-            <h1>👤 {username}'s Profile</h1>
-            <p>Welcome to the user profile page</p>
-        </div>
-        
-        <div class="profile-info">
-            <h3>Profile Information</h3>
-            <p><strong>Username:</strong> {username}</p>
-            <p><strong>Bio:</strong> {bio if bio else 'No bio provided'}</p>
-            <p><strong>Member Since:</strong> 2024</p>
-            <p><strong>Status:</strong> <span style="color: green;">Active</span></p>
-        </div>
-        
-        <div class="edit-form">
-            <h3>Update Bio</h3>
-            <textarea id="bioInput" placeholder="Tell us about yourself..." rows="4">{bio}</textarea>
-            <br>
-            <button onclick="updateProfile()">Update Profile</button>
-        </div>
-        
-        <div style="margin-top: 20px;">
-            <a href="/">← Back to Home</a> | 
-            <a href="/profile?user=admin">View Admin Profile</a>
+        <div class="cover"></div>
+        <div class="container">
+            <div class="profile-card">
+                <div class="profile-header">
+                    <div class="avatar">👤</div>
+                    <div class="username">{username}</div>
+                    <div class="meta">Member since 2024 • <span style="color: #10b981">Active</span></div>
+                </div>
+                
+                <div class="bio-section">
+                    <h3>About</h3>
+                    <div class="bio-content">
+                        {bio if bio else 'No bio information available.'}
+                    </div>
+                </div>
+                
+                <div class="edit-section">
+                    <h3>Update Bio</h3>
+                    <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 15px;">Share something about yourself with the community.</p>
+                    <textarea id="bioInput" rows="4" placeholder="Write your bio here...">{bio}</textarea>
+                    <br>
+                    <button class="btn" onclick="updateProfile()">Save Changes</button>
+                    <br>
+                    <a href="/" class="nav-link">← Home</a>
+                    <a href="/profile?user=admin" class="nav-link">View Admin Profile</a>
+                </div>
+            </div>
         </div>
     </body>
     </html>
@@ -230,7 +272,6 @@ def profile_page():
     
     return profile_html
 
-# Stored XSS Vulnerabilities
 @app.route('/comments', methods=['GET', 'POST'])
 def comments_page():
     if request.method == 'POST':
@@ -238,7 +279,6 @@ def comments_page():
         comment = request.form.get('comment', '')
         email = request.form.get('email', '')
         
-        # VULNERABILITY 3: Stored XSS in comments
         if comment:
             comments.append({
                 'id': len(comments) + 1,
@@ -250,116 +290,152 @@ def comments_page():
     
     comments_html = """
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <title>Comments Section</title>
+        <meta charset="UTF-8">
+        <title>Discussion - SecretCorp</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .comment-form { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
-            .comment { background: white; padding: 20px; margin: 15px 0; border-radius: 8px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-            .comment-meta { color: #666; font-size: 0.9em; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-            .comment-text { line-height: 1.6; }
-            input, textarea { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
-            button { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; }
-            .admin-comment { border-left: 4px solid #dc3545; }
+            body { font-family: 'Inter', sans-serif; margin: 0; background: #f9fafb; color: #1f2937; }
+            .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+            .header { margin-bottom: 30px; }
+            .comment-box { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 40px; }
+            .form-group { margin-bottom: 15px; }
+            input, textarea { width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+            button { background: #4f46e5; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+            .comment-list { display: flex; flex-direction: column; gap: 20px; }
+            .comment-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; }
+            .comment-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
+            .author { font-weight: 600; color: #111827; }
+            .time { color: #9ca3af; font-size: 0.875rem; }
+            .comment-body { line-height: 1.6; color: #374151; }
+            .admin-badge { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; margin-left: 8px; }
         </style>
     </head>
     <body>
-        <h2>💬 Community Comments</h2>
-        
-        <div class="comment-form">
-            <h3>Leave a Comment</h3>
-            <form method="POST">
-                <input type="text" name="name" placeholder="Your Name" required>
-                <input type="email" name="email" placeholder="Your Email (optional)">
-                <textarea name="comment" placeholder="Your comment..." rows="4" required></textarea>
-                <button type="submit">Post Comment</button>
-            </form>
-        </div>
-        
-        <div class="comments-list">
-            <h3>Recent Comments (""" + str(len(comments)) + """):</h3>
+        <div class="container">
+            <div class="header">
+                <h1>Community Discussion</h1>
+                <p>Join the conversation and share your thoughts.</p>
+            </div>
+            
+            <div class="comment-box">
+                <form method="POST">
+                    <div class="form-group">
+                        <input type="text" name="name" placeholder="Your Name" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" name="email" placeholder="Your Email (optional)">
+                    </div>
+                    <div class="form-group">
+                        <textarea name="comment" placeholder="What are you thinking?" rows="3" required></textarea>
+                    </div>
+                    <button type="submit">Post Comment</button>
+                </form>
+            </div>
+            
+            <div class="comment-list">
+                <h3>Recent Comments (""" + str(len(comments)) + """)</h3>
     """
     
-    # Display comments with XSS vulnerability
-    for comment in reversed(comments[-10:]):  # Show last 10 comments
-        admin_class = ' admin-comment' if 'admin' in comment['name'].lower() else ''
+    for comment in reversed(comments[-10:]):
+        is_admin = 'admin' in comment['name'].lower()
+        admin_tag = '<span class="admin-badge">ADMIN</span>' if is_admin else ''
         comments_html += f"""
-            <div class="comment{admin_class}">
-                <div class="comment-meta">
-                    <strong>{comment['name']}</strong> 
-                    {f"&lt;{comment['email']}&gt;" if comment['email'] else ""} 
-                    - {comment['timestamp']}
+            <div class="comment-card" style="{ 'border-left: 4px solid #ef4444;' if is_admin else '' }">
+                <div class="comment-header">
+                    <div>
+                        <span class="author">{comment['name']}</span>
+                        {admin_tag}
+                        {f'<span style="color: #9ca3af; font-size: 0.9em;">&lt;{comment["email"]}&gt;</span>' if comment['email'] else ''}
+                    </div>
+                    <span class="time">{comment['timestamp']}</span>
                 </div>
-                <div class="comment-text">{comment['comment']}</div>
+                <div class="comment-body">{comment['comment']}</div>
             </div>
         """
     
     if not comments:
-        comments_html += '<p style="color: #666; font-style: italic;">No comments yet. Be the first to comment!</p>'
+        comments_html += '<div style="text-align: center; color: #9ca3af; padding: 20px;">No comments yet. Be the first to share!</div>'
     
     comments_html += """
+            </div>
+            <div style="margin-top: 30px;">
+                <a href="/" style="color: #6b7280; text-decoration: none;">← Back to Home</a>
+            </div>
         </div>
-        <p><a href="/">← Back to Home</a></p>
     </body>
     </html>
     """
     
     return comments_html
 
-# DOM XSS Vulnerabilities
 @app.route('/messages')
 def messages_page():
-    # VULNERABILITY 4: DOM XSS through URL fragment processing
     return """
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <title>Message Center</title>
+        <meta charset="UTF-8">
+        <title>Messages - SecretCorp</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .message-center { max-width: 800px; margin: 0 auto; }
-            .message-input { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-            .message { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #007bff; }
-            .urgent { border-left-color: #dc3545 !important; background: #fff5f5; }
-            input { padding: 10px; width: 300px; border: 1px solid #ddd; border-radius: 4px; margin: 5px; }
-            button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
-            .preview { background: #e9ecef; padding: 15px; margin: 10px 0; border-radius: 4px; }
+            body { font-family: 'Inter', sans-serif; margin: 0; background: #f3f4f6; height: 100vh; display: flex; flex-direction: column; }
+            .nav { background: white; padding: 0 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+            .nav-content { max-width: 1100px; margin: 0 auto; height: 64px; display: flex; align-items: center; }
+            .back-link { color: #6b7280; text-decoration: none; font-weight: 500; }
+            
+            .main { flex: 1; max-width: 1000px; margin: 20px auto; width: 100%; display: grid; grid-template-columns: 300px 1fr; gap: 20px; padding: 0 20px; box-sizing: border-box; }
+            
+            .sidebar { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: calc(100vh - 140px); overflow-y: auto; }
+            .msg-area { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: calc(100vh - 140px); display: flex; flex-direction: column; }
+            
+            .compose-box { margin-top: auto; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+            input, textarea { width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 10px; box-sizing: border-box; font-family: inherit; }
+            .btn { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500; margin-right: 10px; }
+            .btn-outline { background: white; border: 1px solid #d1d5db; color: #374151; }
+            
+            .message-bubble { background: #f3f4f6; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #4f46e5; }
+            .preview-box { background: #fffbeb; border: 1px solid #fcd34d; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; }
         </style>
     </head>
     <body>
-        <div class="message-center">
-            <h2>📧 Message Center</h2>
-            
-            <div class="message-input">
-                <h3>Send a Message</h3>
-                <input type="text" id="recipientInput" placeholder="Recipient">
-                <input type="text" id="subjectInput" placeholder="Subject">
-                <br>
-                <textarea id="messageInput" placeholder="Your message..." rows="4" style="width: 100%; padding: 10px; margin: 5px 0;"></textarea>
-                <br>
-                <button onclick="sendMessage()">Send Message</button>
-                <button onclick="previewMessage()">Preview</button>
+        <div class="nav">
+            <div class="nav-content">
+                <a href="/" class="back-link">← Back to SecretCorp</a>
+            </div>
+        </div>
+        
+        <div class="main">
+            <div class="sidebar">
+                <h3 style="margin-top: 0;">Inbox</h3>
+                <div class="message-bubble">
+                    <strong>System</strong><br>
+                    <span style="font-size: 0.9em; color: #666;">Welcome to your messages!</span>
+                </div>
+                <div id="messagesList"></div>
             </div>
             
-            <div id="preview" class="preview" style="display: none;">
-                <h4>Message Preview:</h4>
-                <div id="previewContent"></div>
-            </div>
-            
-            <div class="messages-list">
-                <h3>Recent Messages:</h3>
-                <div id="messagesList">
-                    <div class="message">
-                        <strong>System</strong> - Welcome to WebSploit Labs!<br>
-                        <small>This is a test message to demonstrate the message system.</small>
+            <div class="msg-area">
+                <div id="preview" class="preview-box">
+                    <strong>Preview:</strong>
+                    <div id="previewContent"></div>
+                </div>
+                
+                <div class="compose-box">
+                    <h3>New Message</h3>
+                    <input type="text" id="recipientInput" placeholder="To: (username)">
+                    <input type="text" id="subjectInput" placeholder="Subject">
+                    <textarea id="messageInput" rows="3" placeholder="Type your message..."></textarea>
+                    <div style="margin-top: 10px;">
+                        <button class="btn" onclick="sendMessage()">Send</button>
+                        <button class="btn btn-outline" onclick="previewMessage()">Preview</button>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <script>
-            // DOM XSS vulnerability in message processing
             function previewMessage() {
                 const recipient = document.getElementById('recipientInput').value;
                 const subject = document.getElementById('subjectInput').value;
@@ -368,12 +444,11 @@ def messages_page():
                 const previewDiv = document.getElementById('preview');
                 const previewContent = document.getElementById('previewContent');
                 
-                // VULNERABLE: Direct innerHTML assignment without sanitization
                 previewContent.innerHTML = `
                     <strong>To:</strong> ${recipient}<br>
                     <strong>Subject:</strong> ${subject}<br>
                     <strong>Message:</strong><br>
-                    <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">${message}</div>
+                    <div style="margin-top: 5px;">${message}</div>
                 `;
                 
                 previewDiv.style.display = 'block';
@@ -389,10 +464,9 @@ def messages_page():
                     return;
                 }
                 
-                // VULNERABLE: Direct innerHTML assignment
                 const messagesList = document.getElementById('messagesList');
                 const newMessage = document.createElement('div');
-                newMessage.className = 'message';
+                newMessage.className = 'message-bubble';
                 newMessage.innerHTML = `
                     <strong>To: ${recipient}</strong> - ${subject}<br>
                     <small>${message}</small>
@@ -409,7 +483,6 @@ def messages_page():
                 alert('Message sent to ' + recipient);
             }
             
-            // Process URL fragment for auto-fill (DOM XSS vector)
             window.onload = function() {
                 const hash = window.location.hash.substring(1);
                 if (hash) {
@@ -418,7 +491,6 @@ def messages_page():
                     const autoFillRecipient = params.get('to');
                     
                     if (autoFillMsg) {
-                        // VULNERABLE: Direct assignment from URL
                         document.getElementById('messageInput').value = decodeURIComponent(autoFillMsg);
                     }
                     if (autoFillRecipient) {
@@ -427,25 +499,20 @@ def messages_page():
                 }
             };
         </script>
-        
-        <p><a href="/">← Back to Home</a></p>
     </body>
     </html>
     """
 
-# API endpoints with XSS vulnerabilities
 @app.route('/api/search')
 def api_search():
     query = request.args.get('q', '')
     
-    # VULNERABILITY 5: XSS in JSON API response
     results_html = f"""
         <div class="search-results">
-            <h4>Search Results for: {query}</h4>
+            <h4>Results for: {query}</h4>
     """
     
     if query:
-        # Simulate search results
         fake_results = [
             f"User profile containing '{query}'",
             f"Blog post about {query}",
@@ -462,132 +529,150 @@ def api_search():
     return jsonify({
         'query': query,
         'count': 3 if query else 0,
-        'html': results_html  # XSS vulnerability: HTML in JSON response
+        'html': results_html
     })
 
 @app.route('/api/profile/<username>')
 def api_profile(username):
     bio = request.args.get('bio', f'This is {username}\'s profile')
     
-    # VULNERABILITY 6: XSS in API responses
     return jsonify({
         'username': username,
-        'bio': bio,  # Not sanitized
-        'html_bio': f'<div class="bio">{bio}</div>',  # Direct HTML inclusion
+        'bio': bio,
+        'html_bio': f'<div class="bio">{bio}</div>',
         'status': 'active'
     })
 
-# Admin panel (typically higher privilege target)
 @app.route('/admin')
 def admin_panel():
     session_id = request.args.get('session', '')
     debug_info = request.args.get('debug', '')
     
-    # VULNERABILITY 7: XSS in admin panel
     admin_html = f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <title>Admin Panel</title>
+        <meta charset="UTF-8">
+        <title>Admin - SecretCorp</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; }}
-            .admin-header {{ background: #dc3545; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
-            .admin-section {{ background: white; padding: 20px; margin: 15px 0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
-            .debug-info {{ background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; font-family: monospace; }}
+            body {{ font-family: 'Inter', sans-serif; margin: 0; background: #f3f4f6; color: #1f2937; }}
+            .sidebar {{ width: 250px; background: #1f2937; height: 100vh; position: fixed; color: white; padding: 20px; box-sizing: border-box; }}
+            .main {{ margin-left: 250px; padding: 30px; }}
+            .brand {{ font-size: 1.25rem; font-weight: 700; margin-bottom: 40px; display: block; color: white; text-decoration: none; }}
+            .menu-item {{ display: block; color: #9ca3af; text-decoration: none; padding: 10px 0; transition: color 0.2s; }}
+            .menu-item:hover {{ color: white; }}
+            .menu-item.active {{ color: white; font-weight: 600; }}
+            
+            .card {{ background: white; border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }}
+            .card-header {{ margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; }}
+            h2 {{ margin: 0; font-size: 1.1rem; }}
+            
             table {{ width: 100%; border-collapse: collapse; }}
-            th, td {{ padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }}
-            th {{ background-color: #f8f9fa; }}
+            th, td {{ text-align: left; padding: 12px; border-bottom: 1px solid #e5e7eb; }}
+            th {{ color: #6b7280; font-weight: 500; font-size: 0.875rem; }}
+            
+            .debug-box {{ background: #fee2e2; border: 1px solid #fecaca; color: #991b1b; padding: 15px; border-radius: 6px; font-family: monospace; }}
         </style>
     </head>
     <body>
-        <div class="admin-header">
-            <h1>⚙️ Admin Control Panel</h1>
-            <p>System Administration Interface</p>
-            {f'<p>Session: {session_id}</p>' if session_id else ''}
+        <div class="sidebar">
+            <a href="/" class="brand">SecretCorp Admin</a>
+            <a href="#" class="menu-item active">Dashboard</a>
+            <a href="#" class="menu-item">Users</a>
+            <a href="#" class="menu-item">Settings</a>
+            <a href="/" class="menu-item" style="margin-top: auto;">← Back to Site</a>
         </div>
         
-        <div class="admin-section">
-            <h3>📊 System Statistics</h3>
-            <table>
-                <tr><th>Metric</th><th>Value</th></tr>
-                <tr><td>Total Comments</td><td>{len(comments)}</td></tr>
-                <tr><td>Search Queries</td><td>{len(search_history)}</td></tr>
-                <tr><td>Active Sessions</td><td>1</td></tr>
-            </table>
-        </div>
-        
-        <div class="admin-section">
-            <h3>💬 Recent Comments</h3>
+        <div class="main">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h1 style="margin: 0;">Dashboard</h1>
+                {f'<span>Session ID: {session_id}</span>' if session_id else ''}
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>System Statistics</h2>
+                </div>
+                <table>
+                    <tr><th>Metric</th><th>Value</th></tr>
+                    <tr><td>Total Comments</td><td>{len(comments)}</td></tr>
+                    <tr><td>Search Queries</td><td>{len(search_history)}</td></tr>
+                    <tr><td>Active Sessions</td><td>1</td></tr>
+                </table>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Activity</h2>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="font-size: 1rem; color: #4b5563;">Latest Comments</h3>
     """
     
-    # Display recent comments (with XSS vulnerability)
     for comment in comments[-5:]:
         admin_html += f"""
-            <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0;">
+            <div style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
                 <strong>{comment['name']}</strong>: {comment['comment']}
-                <br><small>{comment['timestamp']}</small>
+                <div style="font-size: 0.8rem; color: #9ca3af;">{comment['timestamp']}</div>
             </div>
         """
     
     admin_html += """
-        </div>
-        
-        <div class="admin-section">
-            <h3>🔍 Search History</h3>
+                </div>
+                <div>
+                    <h3 style="font-size: 1rem; color: #4b5563;">Recent Searches</h3>
     """
     
-    # Display search history (with XSS vulnerability)
     for search in search_history[-5:]:
         admin_html += f"""
-            <div style="border: 1px solid #ddd; padding: 8px; margin: 3px 0;">
-                Query: <strong>{search['query']}</strong> | 
-                Filter: {search['filter']} | 
-                Time: {search['timestamp']}
+            <div style="padding: 8px 0; border-bottom: 1px solid #f3f4f6;">
+                Search: <strong>{search['query']}</strong> 
+                <span style="color: #9ca3af; font-size: 0.9em;">({search['filter']})</span>
             </div>
         """
     
     if debug_info:
         admin_html += f"""
-            <div class="admin-section">
-                <h3>🐛 Debug Information</h3>
-                <div class="debug-info">
-                    Debug Data: {debug_info}
+            <div style="margin-top: 20px;">
+                <div class="debug-box">
+                    <strong>Debug Output:</strong> {debug_info}
                 </div>
             </div>
         """
     
     admin_html += """
+            </div>
         </div>
-        <p><a href="/">← Back to Home</a></p>
     </body>
     </html>
     """
     
     return admin_html
 
-# Context-based XSS vulnerabilities
 @app.route('/widget')
 def widget():
-    title = request.args.get('title', 'Default Widget')
+    title = request.args.get('title', 'Widget')
     callback = request.args.get('callback', '')
     config = request.args.get('config', '{}')
     
-    # VULNERABILITY 8: XSS in different contexts (JavaScript, HTML attributes, etc.)
     widget_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <title>{title}</title>
         <style>
-            .widget {{ border: 2px solid #007bff; padding: 20px; border-radius: 8px; max-width: 400px; margin: 20px auto; }}
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; }}
+            .widget-box {{ border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }}
+            h3 {{ margin-top: 0; color: #1f2937; }}
+            code {{ background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }}
         </style>
         <script>
-            // XSS in JavaScript context
             var widgetConfig = {config};
             var widgetTitle = "{title}";
             
             function initWidget() {{
-                console.log("Initializing widget: " + widgetTitle);
+                console.log("Widget loaded: " + widgetTitle);
                 {f'{callback}();' if callback else ''}
             }}
             
@@ -595,10 +680,10 @@ def widget():
         </script>
     </head>
     <body>
-        <div class="widget" title="{title}">
-            <h3>🔧 Widget: {title}</h3>
-            <p>This is a configurable widget component.</p>
-            <p>Configuration: <code>{config}</code></p>
+        <div class="widget-box" title="{title}">
+            <h3>{title}</h3>
+            <p>Widget Configuration Loaded.</p>
+            <p>Config: <code>{config}</code></p>
         </div>
     </body>
     </html>
@@ -607,17 +692,6 @@ def widget():
     return widget_html
 
 if __name__ == '__main__':
-    print("🚀 WebSploit Labs - XSS Vulnerable Application")
-    print("⚠️  WARNING: This application contains intentional XSS vulnerabilities!")
-    print("📚 Educational use only - Created by Omar Santos")
-    print("🌐 Access the application at: http://localhost:5011")
-    print("=" * 60)
-    print("🎯 XSS Testing Areas:")
-    print("   • Reflected XSS: /search, /profile")
-    print("   • Stored XSS: /comments")
-    print("   • DOM XSS: /messages")
-    print("   • Context XSS: /widget, /admin")
-    print("   • API XSS: /api/search, /api/profile")
-    print("=" * 60)
-    
+    print("Starting SecretCorp Application...")
+    print("Server running on http://0.0.0.0:5011")
     app.run(host='0.0.0.0', port=5011, debug=True)
