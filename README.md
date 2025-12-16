@@ -1,4 +1,5 @@
 # WebSploit Labs
+
 WebSploit Labs is a learning environment created by Omar Santos for different Cybersecurity Ethical Hacking, Bug Hunting, Incident Response, Digital Forensics, and Threat Hunting training sessions. WebSploit Labs includes several intentionally vulnerable applications running in Docker containers on top of Kali Linux or Parrot Security OS, several additional tools, and over 9,000 cybersecurity resources.
 
 WebSploit Labs has been used by many colleges and universities in different countries. It comes with over 500 distinct exercises!
@@ -21,7 +22,7 @@ Download and install **Kali Linux** or **Parrot OS** (whichever you prefer) in a
 - **CPU:** 2 vCPUs
 - **Disk Space:** 50 GB
 
-> ⚡ Tip: Make sure virtualization is enabled in your system BIOS for best performance.
+> Tip: Make sure virtualization is enabled in your system BIOS for best performance.
 
 ---
 
@@ -40,6 +41,122 @@ This script will:
 
 ---
 
-### Important Notes
+## Available Containers
+
+WebSploit Labs includes a variety of vulnerable applications organized into two networks:
+
+### WebSploit Network (10.6.6.0/24)
+
+#### OWASP & Classic Vulnerable Applications
+
+| Container | IP Address | Description |
+|-----------|------------|-------------|
+| **webgoat** | 10.6.6.11 | OWASP WebGoat - Comprehensive web security training |
+| **juice-shop** | 10.6.6.12 | OWASP Juice Shop - Modern vulnerable web app with CTF challenges |
+| **dvwa** | 10.6.6.13 | Damn Vulnerable Web Application - Classic security training |
+
+#### CTF & Challenge Containers
+
+| Container | IP Address | Description |
+|-----------|------------|-------------|
+| **galactic-archives** | 10.6.6.20 | Sci-Fi themed CTF challenge |
+| **gravemind** | 10.6.6.23 | Halo-themed CTF challenge |
+| **dc30_01** | 10.6.6.24 | DEF CON 30 Challenge |
+| **dc30_02** | 10.6.6.25 | DEF CON 30 Challenge |
+| **y-wing** | 10.6.6.26 | Star Wars themed CTF challenge |
+
+#### Additional Vulnerability Labs
+
+Custom-built labs focusing on specific vulnerability categories (built from `./additional-labs/`):
+
+| Container | IP Address | Port | Vulnerability Type |
+|-----------|------------|------|-------------------|
+| **hydra-nexus** | 10.6.6.30 | 5010 | Multi-Vulnerability Gauntlet (SQLi, XSS, IDOR, XXE, etc.) |
+| **phantom-script** | 10.6.6.31 | 5011 | Cross-Site Scripting (Reflected, Stored, DOM) |
+| **trojan-relay** | 10.6.6.32 | 5012 | Server-Side Request Forgery (SSRF) |
+| **sqli-breach** | 10.6.6.33 | 5001 | SQL Injection |
+| **shell-inject** | 10.6.6.34 | 5002 | OS Command Injection |
+| **maze-walker** | 10.6.6.35 | 5003 | Path/Directory Traversal |
+
+> See [`additional-labs/README.md`](additional-labs/README.md) for detailed documentation on these labs.
+
+### WebSploit2 Network (10.7.7.0/24)
+
+| Container | IP Address | Description |
+|-----------|------------|-------------|
+| **dc31_01** | 10.7.7.21 | DEF CON 31 Challenge |
+| **dc31_03** | 10.7.7.23 | DEF CON 31 Challenge |
+
+---
+
+## Quick Start Commands
+
+```bash
+# Start all containers
+docker compose up -d
+
+# Start with build (for additional labs)
+docker compose up -d --build
+
+# View running containers
+docker compose ps
+
+# View logs
+docker compose logs -f [container_name]
+
+# Stop all containers
+docker compose down
+
+# Rebuild specific containers
+docker compose build --no-cache [container_name]
+```
+
+---
+
+## Network Topology
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         WEBSPLOIT LAB ENVIRONMENT                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │              WebSploit Network (10.6.6.0/24)                        │   │
+│  │                                                                     │   │
+│  │  OWASP Apps          CTF Challenges       Additional Labs          │   │
+│  │  ───────────         ──────────────       ────────────────         │   │
+│  │  webgoat      .11    galactic-archives    hydra-nexus    .30       │   │
+│  │  juice-shop   .12    gravemind      .23   phantom-script .31       │   │
+│  │  dvwa         .13    dc30_01        .24   trojan-relay   .32       │   │
+│  │                      dc30_02        .25   sqli-breach    .33       │   │
+│  │                      y-wing         .26   shell-inject   .34       │   │
+│  │                                           maze-walker    .35       │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │              WebSploit2 Network (10.7.7.0/24)                       │   │
+│  │                                                                     │   │
+│  │  DEF CON 31 Challenges                                              │   │
+│  │  ─────────────────────                                              │   │
+│  │  dc31_01        .21                                                 │   │
+│  │  dc31_03        .23                                                 │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Important Notes
+
 - **Apple M-series Macs (running on Apple Silicon) are not supported** due to compatibility issues with hypervisors and Docker on ARM architecture.
 - You can **verify the integrity** of the `install.sh` script by checking its SHA-512 checksum [here](https://websploit.org).
+
+---
+
+## Disclaimer
+
+> **WARNING**: These applications are **intentionally vulnerable**.
+> - Do **NOT** expose these containers to the public internet or untrusted networks.
+> - Run them only in a safe, isolated environment.
+> - Use them for educational and authorized testing purposes only.
