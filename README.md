@@ -147,9 +147,8 @@ docker compose build --no-cache [container_name]
 
 ---
 
-## Important Notes
+## Verification Steps
 
-- **Apple M-series Macs (running on Apple Silicon) are not supported** due to compatibility issues with hypervisors and Docker on ARM architecture.
 - You can **verify the integrity** of the `install.sh` script by checking its SHA-512 checksum [here](https://websploit.org).
 
 ---
