@@ -1,3 +1,6 @@
+# This is a simple path traversal example app.
+# Instructor: Omar Santos (@santosomar)
+
 from flask import Flask, request, render_template_string, send_file
 import os
 

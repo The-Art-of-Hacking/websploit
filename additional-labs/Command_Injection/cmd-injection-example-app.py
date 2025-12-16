@@ -1,5 +1,5 @@
-# cmd-injection-example-app.py
-# Internal Network Tool
+# This is a simple command injection example app.
+# Instructor: Omar Santos (@santosomar)
 
 from flask import Flask, request, render_template_string
 import subprocess

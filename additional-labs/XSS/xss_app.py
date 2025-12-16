@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""
-SecretCorp Application
-"""
+# This is a simple XSS example app.
+# Instructor: Omar Santos (@santosomar)
 
 from flask import Flask, request, render_template_string, jsonify, make_response, redirect, url_for, session
 import urllib.parse

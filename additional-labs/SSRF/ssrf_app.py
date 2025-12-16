@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-"""
-SecretCorp Diagnostics Suite
-Internal network analysis and validation tools.
-"""
+# This is a simple SSRF example app.
+# Instructor: Omar Santos (@santosomar)
 
 from flask import Flask, request, render_template_string, jsonify
 import requests
