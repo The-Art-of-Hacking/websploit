@@ -46,8 +46,9 @@ services:
       websploit-containers:
         ipv4_address: 10.66.66.25
     ports:
-      - "5001:5000" # Mapping 5000 to 5001 on host to avoid conflicts if needed, or just expose
+      - "5001:5000"
 
+  
   # Command Injection Lab Container
   cmd-injection-lab:
     container_name: cmd-injection-lab

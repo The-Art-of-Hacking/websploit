@@ -12,7 +12,7 @@ services:
 
   juice-shop:
     container_name: juice-shop
-    image: santosomar/juice-shop
+    image: bkimminich/juice-shop
     restart: unless-stopped
     networks:
       websploit:
@@ -50,22 +50,6 @@ services:
       websploit:
         ipv4_address: 10.6.6.16
 
-  mayhem:
-    container_name: mayhem
-    image: santosomar/mayhem
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.18
-
-  rtv-safemode:
-    container_name: rtv-safemode
-    image: santosomar/rtv-safemode
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.19
-
   galactic-archives:
     container_name: galactic-archives
     image: santosomar/galactic-archives
@@ -73,14 +57,6 @@ services:
     networks:
       websploit:
         ipv4_address: 10.6.6.20
-
-  secretcorp-branch1:
-    container_name: secretcorp-branch1
-    image: santosomar/secretcorp-branch1
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.22
 
   gravemind:
     container_name: gravemind
@@ -114,7 +90,7 @@ services:
       websploit:
         ipv4_address: 10.6.6.26
 
-  # DEF CON 31 Network - websploit2
+  # WebSploit2 Network
   dc31_01:
     container_name: dc31_01
     image: santosomar/dc31_01:latest
