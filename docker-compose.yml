@@ -26,30 +26,6 @@ services:
       websploit:
         ipv4_address: 10.6.6.13
 
-  mutillidae_2:
-    container_name: mutillidae_2
-    image: santosomar/mutillidae_2
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.14
-
-  dvna:
-    container_name: dvna
-    image: santosomar/dvna
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.15
-
-  hackazon:
-    container_name: hackazon
-    image: santosomar/hackazon
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.16
-
   galactic-archives:
     container_name: galactic-archives
     image: santosomar/galactic-archives
@@ -89,6 +65,67 @@ services:
     networks:
       websploit:
         ipv4_address: 10.6.6.26
+
+  # Additional Labs - Vulnerability Training Containers
+  hydra-nexus:
+    container_name: hydra-nexus
+    build: ./additional-labs/Multi-Vulnerability-Gauntlet
+    restart: unless-stopped
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.30
+    ports:
+      - "5010:5010"
+
+  phantom-script:
+    container_name: phantom-script
+    build: ./additional-labs/XSS
+    restart: unless-stopped
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.31
+    ports:
+      - "5011:5011"
+
+  trojan-relay:
+    container_name: trojan-relay
+    build: ./additional-labs/SSRF
+    restart: unless-stopped
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.32
+    ports:
+      - "5012:5012"
+
+  sqli-breach:
+    container_name: sqli-breach
+    build: ./additional-labs/SQLi
+    restart: unless-stopped
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.33
+    ports:
+      - "5001:5000"
+
+  shell-inject:
+    container_name: shell-inject
+    build: ./additional-labs/Command_Injection
+    restart: unless-stopped
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.34
+    ports:
+      - "5002:5000"
+
+  maze-walker:
+    container_name: maze-walker
+    build: ./additional-labs/Path_Traversal
+    restart: unless-stopped
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.35
+    ports:
+      - "5003:81"
 
   # WebSploit2 Network
   dc31_01:
