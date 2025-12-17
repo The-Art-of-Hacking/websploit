@@ -114,7 +114,7 @@ sudo systemctl enable docker --now
 
 
 echo "[+] Fetching docker-compose.yml from WebSploit.org..."
-wget -O /root/docker-compose.yml https://websploit.org/docker-compose.yml
+wget -O /root/docker-compose.yml https://raw.githubusercontent.com/The-Art-of-Hacking/websploit/refs/heads/master/docker-compose.yml
 
 echo "[+] Starting containers..."
 cd /root
