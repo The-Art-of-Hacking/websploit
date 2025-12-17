@@ -132,6 +132,16 @@ services:
     ports:
       - "5003:81"
 
+  entity-smuggler:
+    container_name: entity-smuggler
+    build: ./additional-labs/XXE
+    restart: unless-stopped
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.36
+    ports:
+      - "5013:5013"
+
   # WebSploit2 Network
   dc31_01:
     container_name: dc31_01

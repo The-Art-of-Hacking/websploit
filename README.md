@@ -77,6 +77,7 @@ Custom-built labs focusing on specific vulnerability categories (built from `./a
 | **sqli-breach** | 10.6.6.33 | 5001 | SQL Injection |
 | **shell-inject** | 10.6.6.34 | 5002 | OS Command Injection |
 | **maze-walker** | 10.6.6.35 | 5003 | Path/Directory Traversal |
+| **entity-smuggler** | 10.6.6.36 | 5013 | XML External Entity (XXE) Injection |
 
 > See [`additional-labs/README.md`](additional-labs/README.md) for detailed documentation on these labs.
 
@@ -131,6 +132,7 @@ docker compose build --no-cache [container_name]
 │  │                      dc30_02        .25   sqli-breach    .33        │   │
 │  │                      y-wing         .26   shell-inject   .34        │   │
 │  │                                           maze-walker    .35        │   │
+│  │                                           entity-smuggler.36        │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                            │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │

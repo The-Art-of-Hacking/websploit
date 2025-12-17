@@ -14,6 +14,7 @@ This directory contains an additional collection of vulnerable web applications 
 | **sqli-breach** | SQL Injection (Login Bypass) | `http://localhost:5001` | `10.6.6.33` |
 | **shell-inject** | OS Command Injection | `http://localhost:5002` | `10.6.6.34` |
 | **maze-walker** | Directory/Path Traversal | `http://localhost:5003` | `10.6.6.35` |
+| **entity-smuggler** | XML External Entity (XXE) Injection | `http://localhost:5013` | `10.6.6.36` |
 
 ### Container Naming Theme
 
@@ -25,6 +26,7 @@ The containers follow a sci-fi/cybersecurity naming convention:
 - **sqli-breach** — Breaching the database oracle to extract secrets
 - **shell-inject** — When user input becomes system commands
 - **maze-walker** — Traversing forbidden paths through the file system labyrinth
+- **entity-smuggler** — External entities smuggling data through XML parsing
 
 ## Getting Started
 
@@ -43,7 +45,7 @@ These labs are now part of the main WebSploit environment. From the **root direc
 
 2. Or start only the additional labs:
    ```bash
-   docker compose up -d hydra-nexus phantom-script trojan-relay sqli-breach shell-inject maze-walker
+   docker compose up -d hydra-nexus phantom-script trojan-relay sqli-breach shell-inject maze-walker entity-smuggler
    ```
 
 3. Verify containers are running:
@@ -62,14 +64,14 @@ docker compose down
 
 To stop only the additional labs:
 ```bash
-docker compose stop hydra-nexus phantom-script trojan-relay sqli-breach shell-inject maze-walker
+docker compose stop hydra-nexus phantom-script trojan-relay sqli-breach shell-inject maze-walker entity-smuggler
 ```
 
 ### Rebuilding After Changes
 
 If you modify the lab source code:
 ```bash
-docker compose build --no-cache hydra-nexus phantom-script trojan-relay sqli-breach shell-inject maze-walker
+docker compose build --no-cache hydra-nexus phantom-script trojan-relay sqli-breach shell-inject maze-walker entity-smuggler
 docker compose up -d
 ```
 
@@ -83,6 +85,7 @@ docker compose up -d
 | **sqli-breach** | A login portal vulnerable to SQL Injection authentication bypass. Practice union-based, error-based, and blind SQLi techniques. |
 | **shell-inject** | Network tool simulator that demonstrates OS command injection vulnerabilities. Learn filter bypass and chaining techniques. |
 | **maze-walker** | File viewer application with path traversal vulnerabilities. Practice LFI, directory traversal, null byte injection, and filter bypasses. |
+| **entity-smuggler** | XML processing gateway vulnerable to XXE injection. Practice file disclosure, SSRF via XML, blind XXE, and entity expansion attacks. |
 
 ## Network Architecture
 
@@ -96,7 +99,8 @@ docker compose up -d
 │  ├── trojan-relay    10.6.6.32:5012                        │
 │  ├── sqli-breach     10.6.6.33:5000 → localhost:5001       │
 │  ├── shell-inject    10.6.6.34:5000 → localhost:5002       │
-│  └── maze-walker     10.6.6.35:81   → localhost:5003       │
+│  ├── maze-walker     10.6.6.35:81   → localhost:5003       │
+│  └── entity-smuggler 10.6.6.36:5013                        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
