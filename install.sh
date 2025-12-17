@@ -72,8 +72,7 @@ fi
 #--------------------------------------------------
 echo "[+] Updating apt and installing base packages..."
 apt update -y
-apt install -y wget curl git ack-grep vim exuberant-ctags python3-pip python3-venv \
-               hostapd ffuf tor jupyter-notebook zaproxy
+apt install -y wget curl git ack-grep gdb vim exuberant-ctags python3-pip python3-venv  hostapd ffuf tor jupyter-notebook zaproxy  
 
 #--------------------------------------------------
 # 3) Install Python-based tools via apt (where possible)
