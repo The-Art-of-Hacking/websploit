@@ -110,15 +110,6 @@ echo "[+] Installing Docker and Docker Compose..."
 sudo apt install -y docker.io docker-compose
 sudo systemctl enable docker --now
 
-
-
-echo "[+] Fetching docker-compose.yml from WebSploit.org..."
-wget -O /root/docker-compose.yml https://raw.githubusercontent.com/The-Art-of-Hacking/websploit/refs/heads/master/docker-compose.yml
-
-echo "[+] Starting containers..."
-cd /root
-docker-compose -f docker-compose.yml up -d
-
 #--------------------------------------------------
 # 6) Clone various GitHub repos including mine, SecLists, GitTools, and PayloadsAllTheThings
 #--------------------------------------------------
@@ -128,6 +119,7 @@ git clone https://github.com/The-Art-of-Hacking/h4cker.git
 git clone https://github.com/danielmiessler/SecLists.git
 git clone https://github.com/internetwache/GitTools.git
 git clone https://github.com/swisskyrepo/PayloadsAllTheThings.git
+git clone https://github.com/The-Art-of-Hacking/websploit.git
 
 # IoT firmware exercises for reverse engineering courses
 mkdir -p /root/iot_exercises
@@ -135,8 +127,19 @@ cd /root/iot_exercises
 wget https://github.com/OWASP/IoTGoat/releases/download/v1.0/IoTGoat-raspberry-pi2.img -O firmware1.img
 wget https://github.com/santosomar/DVRF/releases/download/v3/DVRF_v03.bin -O firmware2.bin
 
+
 #--------------------------------------------------
-# 7) Install radamsa from source
+# 7) Fetching docker-compose.yml from WebSploit.org
+#--------------------------------------------------
+echo "[+] Using docker-compose.yml from websploit.git"
+
+echo "[+] Starting containers..."
+cd /root/websploit
+docker-compose -f docker-compose.yml up -d
+
+
+#--------------------------------------------------
+# 8) Install radamsa from source
 #--------------------------------------------------
 echo "[+] Installing radamsa..."
 cd /root
@@ -145,7 +148,7 @@ cd radamsa
 make && make install
 
 #--------------------------------------------------
-# 8) Install Sublist3r (example of pip in venv or system-wide)
+# 9) Install Sublist3r (example of pip in venv or system-wide)
 #     We'll do it in the same venv to avoid PEP 668 issues
 #--------------------------------------------------
 echo "[+] Installing Sublist3r in the same Python venv..."
@@ -159,14 +162,14 @@ pip install -r requirements.txt
 deactivate
 
 #--------------------------------------------------
-# 9) Install enum4linux-ng
+# 10) Install enum4linux-ng
 #--------------------------------------------------
 cd /root
 git clone https://github.com/cddmp/enum4linux-ng
 # You can also pip-install it in the venv if you want
 
 #--------------------------------------------------
-# 10) If using Parrot, install searchsploit
+# 11) If using Parrot, install searchsploit
 #--------------------------------------------------
 distribution=$(lsb_release -i | awk '{print $NF}')
 if [[ "$distribution" == "Parrot" ]]; then
@@ -178,7 +181,7 @@ fi
 
 
 #--------------------------------------------------
-# 11) Container info script
+# 12) Container info script
 #--------------------------------------------------
 echo "[+] Installing 'containers' script..."
 curl -sSL https://websploit.org/containers.sh > /root/containers.sh
