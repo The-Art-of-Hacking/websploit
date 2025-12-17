@@ -3,7 +3,7 @@
 # Author: Omar Ωr Santos
 # Web: https://websploit.org
 # X: @santosomar LinkedIn: https://linkedin.com/in/santosomar
-# Version: 4.1
+# Version: 5.0
 
 
 clear
@@ -32,7 +32,7 @@ print_banner() {
     clear
     # Use cyan for the top/bottom separators and title
     echo "${bold}${blue}======================================================================${reset}"
-    echo "${bold}${cyan}                WebSploit Labs Installer (v4.0)${reset}"
+    echo "${bold}${cyan}                WebSploit Labs Installer (v5.0)${reset}"
     echo "${bold}${blue}======================================================================${reset}"
     echo # Blank line for spacing
 
