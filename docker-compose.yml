@@ -3,6 +3,7 @@ services:
   webgoat:
     container_name: webgoat
     image: santosomar/webgoat
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       websploit:
@@ -19,6 +20,7 @@ services:
   dvwa:
     container_name: dvwa
     image: santosomar/dvwa
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       websploit:
@@ -27,6 +29,7 @@ services:
   galactic-archives:
     container_name: galactic-archives
     image: santosomar/galactic-archives
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       websploit:
@@ -35,6 +38,7 @@ services:
   gravemind:
     container_name: gravemind
     image: santosomar/gravemind
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       websploit:
@@ -43,6 +47,7 @@ services:
   dc30_01:
     container_name: dc30_01
     image: santosomar/dc30_01:latest
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       websploit:
@@ -51,6 +56,7 @@ services:
   dc30_02:
     container_name: dc30_02
     image: santosomar/dc30_02:latest
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       websploit:
@@ -59,6 +65,7 @@ services:
   y-wing:
     container_name: y-wing
     image: santosomar/ywing:latest
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       websploit:
@@ -129,6 +136,7 @@ services:
   dc31_01:
     container_name: dc31_01
     image: santosomar/dc31_01:latest
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       websploit2:
@@ -137,6 +145,7 @@ services:
   dc31_03:
     container_name: dc31_03
     image: santosomar/dc31_03:latest
+    platform: linux/amd64
     restart: unless-stopped
     networks:
       websploit2:
