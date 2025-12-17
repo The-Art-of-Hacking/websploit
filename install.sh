@@ -184,7 +184,7 @@ fi
 # 12) Container info script
 #--------------------------------------------------
 echo "[+] Installing 'containers' script..."
-curl -sSL https://websploit.org/containers.sh > /root/containers.sh
+curl -sSL https://raw.githubusercontent.com/The-Art-of-Hacking/websploit/refs/heads/master/containers.sh > /root/containers.sh
 chmod +x /root/containers.sh
 mv /root/containers.sh /usr/local/bin/containers
 
