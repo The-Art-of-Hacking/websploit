@@ -79,8 +79,6 @@ Custom-built labs focusing on specific vulnerability categories (built from `./a
 | **maze-walker** | 10.6.6.35 | 5003 | Path/Directory Traversal |
 | **entity-smuggler** | 10.6.6.36 | 5013 | XML External Entity (XXE) Injection |
 
-> See [`additional-labs/README.md`](additional-labs/README.md) for detailed documentation on these labs.
-
 ### WebSploit2 Network (10.7.7.0/24)
 
 | Container | IP Address | Description |
