@@ -2,18 +2,15 @@ FROM python:3.14-slim
 
 WORKDIR /app
 
-# Copy the xxe_app.py file
-COPY xxe_app.py .
-
 # Copy the requirements.txt file
 COPY requirements.txt .
 
 # Install the dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the port
-EXPOSE 5013
+# Copy the rest of the application
+COPY app.py .
 
-# Run the application   
-CMD ["python", "xxe_app.py"]
+# Run the application
+CMD ["python", "app.py"]
 

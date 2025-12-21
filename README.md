@@ -61,8 +61,6 @@ WebSploit Labs includes a variety of vulnerable applications organized into two 
 |-----------|------------|-------------|
 | **galactic-archives** | 10.6.6.20 | Sci-Fi themed CTF challenge |
 | **gravemind** | 10.6.6.23 | Halo-themed CTF challenge |
-| **dc30_01** | 10.6.6.24 | DEF CON 30 Challenge |
-| **dc30_02** | 10.6.6.25 | DEF CON 30 Challenge |
 | **y-wing** | 10.6.6.26 | Star Wars themed CTF challenge |
 
 #### Additional Vulnerability Labs
@@ -78,6 +76,9 @@ Custom-built labs focusing on specific vulnerability categories (built from `./a
 | **shell-inject** | 10.6.6.34 | 5002 | OS Command Injection |
 | **maze-walker** | 10.6.6.35 | 5003 | Path/Directory Traversal |
 | **entity-smuggler** | 10.6.6.36 | 5013 | XML External Entity (XXE) Injection |
+| **token-tower** | 10.6.6.40 | 5020 | JWT Vulnerability |
+| **render-reign** | 10.6.6.41 | 5021 | Server-Side Template Injection |
+| **deserial-gate** | 10.6.6.42 | 5022 | Insecure Deserialization |
 
 ### WebSploit2 Network (10.7.7.0/24)
 
@@ -114,35 +115,44 @@ docker compose build --no-cache [container_name]
 
 ## Network Topology
 
+
 ```
-┌────────────────────────────────────────────────────────────────────────────┐
-│                         WEBSPLOIT LAB ENVIRONMENT                          │
-├────────────────────────────────────────────────────────────────────────────┤
-│                                                                            │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │              WebSploit Network (10.6.6.0/24)                        │   │
-│  │                                                                     │   │
-│  │  OWASP Apps          CTF Challenges       Additional Labs           │   │
-│  │  ───────────         ──────────────       ────────────────          │   │
-│  │  webgoat      .11    galactic-archives    hydra-nexus    .30        │   │
-│  │  juice-shop   .12    gravemind      .23   phantom-script .31        │   │
-│  │  dvwa         .13    dc30_01        .24   trojan-relay   .32        │   │
-│  │                      dc30_02        .25   sqli-breach    .33        │   │
-│  │                      y-wing         .26   shell-inject   .34        │   │
-│  │                                           maze-walker    .35        │   │
-│  │                                           entity-smuggler.36        │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                            │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │              WebSploit2 Network (10.7.7.0/24)                       │   │
-│  │                                                                     │   │
-│  │  DEF CON 31 Challenges                                              │   │
-│  │  ─────────────────────                                              │   │
-│  │  dc31_01        .21                                                 │   │
-│  │  dc31_03        .23                                                 │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                            │
-└────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                  WebSploit Network (10.6.6.0/24)            │
+├─────────────────────────────────────────────────────────────┤
+│  OWASP & Classic Vulnerable Applications:                   │
+│  ├── webgoat     10.6.6.11                                  │
+│  ├── juice-shop  10.6.6.12                                  │
+│  ├── dvwa        10.6.6.13                                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  Labs created by Omar Santos                │
+├─────────────────────────────────────────────────────────────┤
+│  ├── galactic-archives 10.6.6.20                            │
+│  ├── gravemind         10.6.6.23                            │
+│  ├── y-wing            10.6.6.26                            │
+│  ├── hydra-nexus       10.6.6.30                            │
+│  ├── phantom-script    10.6.6.31                            │
+│  ├── trojan-relay      10.6.6.32                            │
+│  ├── sqli-breach       10.6.6.33                            │
+│  ├── shell-inject      10.6.6.34                            │
+│  ├── maze-walker       10.6.6.35                            │
+│  ├── entity-smuggler   10.6.6.36                            │
+│  ├── token-tower       10.6.6.40                            │
+│  ├── render-reign      10.6.6.41                            │
+│  └── deserial-gate     10.6.6.42                            │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                  WebSploit2 Network (10.7.7.0/24)           │
+├─────────────────────────────────────────────────────────────┤
+│  DEF CON 31 Challenges:                                     │
+│  ├── dc31_01     10.7.7.21                                  │
+│  ├── dc31_03     10.7.7.23                                  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
