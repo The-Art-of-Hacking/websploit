@@ -149,7 +149,7 @@ docker compose build --no-cache [container_name]
 
 ## Disclaimer
 
-> **WARNING**: These applications are **intentionally vulnerable**.
+> **WARNING**: These applications are **intentionally vulnerable**. They are **NOT malware or malicious**. They are only for educational purposes.
 > - Do **NOT** expose these containers to the public internet or untrusted networks.
 > - Run them only in a safe, isolated environment.
 > - Use them for educational and authorized testing purposes only.
