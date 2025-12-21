@@ -170,24 +170,14 @@ services:
     restart: unless-stopped
 
 # DEF CON 31 Challenge
-  dc31_01:
-    container_name: dc31_01
+  redis-rogue:
+    container_name: redis-rogue
     image: santosomar/dc31_01:latest
     platform: linux/amd64
     restart: unless-stopped
     networks:
-      websploit2:
-        ipv4_address: 10.7.7.21
-
-# DEF CON 31 Challenge
-  dc31_03:
-    container_name: dc31_03
-    image: santosomar/dc31_03:latest
-    platform: linux/amd64
-    restart: unless-stopped
-    networks:
-      websploit2:
-        ipv4_address: 10.7.7.23
+      websploit:
+        ipv4_address: 10.6.6.43
 
 # Network configuration
 networks:
@@ -198,10 +188,3 @@ networks:
         - subnet: 10.6.6.0/24
           gateway: 10.6.6.1
 
-# WebSploit2 Network configuration
-  websploit2:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.7.7.0/24
-          gateway: 10.7.7.1
