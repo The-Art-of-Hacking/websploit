@@ -1,5 +1,6 @@
 services:
 
+# OWASP WebGoat Lab
   webgoat:
     container_name: webgoat
     image: santosomar/webgoat
@@ -9,6 +10,7 @@ services:
       websploit:
         ipv4_address: 10.6.6.11
 
+# OWASP Juice Shop Lab
   juice-shop:
     container_name: juice-shop
     image: bkimminich/juice-shop
@@ -17,6 +19,7 @@ services:
       websploit:
         ipv4_address: 10.6.6.12
 
+# Damn Vulnerable Web Application Lab
   dvwa:
     container_name: dvwa
     image: santosomar/dvwa
@@ -26,6 +29,7 @@ services:
       websploit:
         ipv4_address: 10.6.6.13
 
+# Sci-Fi themed CTF challenge
   galactic-archives:
     container_name: galactic-archives
     image: santosomar/galactic-archives
@@ -35,6 +39,7 @@ services:
       websploit:
         ipv4_address: 10.6.6.20
 
+# Halo-themed CTF challenge
   gravemind:
     container_name: gravemind
     image: santosomar/gravemind
@@ -44,24 +49,7 @@ services:
       websploit:
         ipv4_address: 10.6.6.23
 
-  dc30_01:
-    container_name: dc30_01
-    image: santosomar/dc30_01:latest
-    platform: linux/amd64
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.24
-
-  dc30_02:
-    container_name: dc30_02
-    image: santosomar/dc30_02:latest
-    platform: linux/amd64
-    restart: unless-stopped
-    networks:
-      websploit:
-        ipv4_address: 10.6.6.25
-
+# Star Wars themed CTF challenge
   y-wing:
     container_name: y-wing
     image: santosomar/ywing:latest
@@ -71,7 +59,7 @@ services:
       websploit:
         ipv4_address: 10.6.6.26
 
-  # Additional Labs - Vulnerability Training Containers
+# Multi-Vulnerability Gauntlet Lab
   hydra-nexus:
     container_name: hydra-nexus
     build: ./additional-labs/Multi-Vulnerability-Gauntlet
@@ -82,6 +70,7 @@ services:
     ports:
       - "5010:5010"
 
+# XSS Lab
   phantom-script:
     container_name: phantom-script
     build: ./additional-labs/XSS
@@ -92,6 +81,7 @@ services:
     ports:
       - "5011:5011"
 
+# SSRF Lab
   trojan-relay:
     container_name: trojan-relay
     build: ./additional-labs/SSRF
@@ -102,6 +92,7 @@ services:
     ports:
       - "5012:5012"
 
+# SQL Injection Lab
   sqli-breach:
     container_name: sqli-breach
     build: ./additional-labs/SQLi
@@ -112,6 +103,7 @@ services:
     ports:
       - "5001:5000"
 
+# Command Injection Lab
   shell-inject:
     container_name: shell-inject
     build: ./additional-labs/Command_Injection
@@ -122,6 +114,7 @@ services:
     ports:
       - "5002:5000"
 
+# Path Traversal Lab
   maze-walker:
     container_name: maze-walker
     build: ./additional-labs/Path_Traversal
@@ -132,6 +125,7 @@ services:
     ports:
       - "5003:81"
 
+# XXE Lab
   entity-smuggler:
     container_name: entity-smuggler
     build: ./additional-labs/XXE
@@ -142,7 +136,40 @@ services:
     ports:
       - "5013:5013"
 
-  # WebSploit2 Network
+  # JWT Vulnerability Lab
+  token-tower:
+    build: ./additional-labs/token-tower
+    container_name: token-tower
+    ports:
+      - "5020:5020"
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.40
+    restart: unless-stopped
+
+  # Server-Side Template Injection Lab
+  render-reign:
+    build: ./additional-labs/render-reign
+    container_name: render-reign
+    ports:
+      - "5021:5021"
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.41
+    restart: unless-stopped
+
+  # Insecure Deserialization Lab
+  deserial-gate:
+    build: ./additional-labs/deserial-gate
+    container_name: deserial-gate
+    ports:
+      - "5022:5022"
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.42
+    restart: unless-stopped
+
+# DEF CON 31 Challenge
   dc31_01:
     container_name: dc31_01
     image: santosomar/dc31_01:latest
@@ -152,6 +179,7 @@ services:
       websploit2:
         ipv4_address: 10.7.7.21
 
+# DEF CON 31 Challenge
   dc31_03:
     container_name: dc31_03
     image: santosomar/dc31_03:latest
@@ -170,6 +198,7 @@ networks:
         - subnet: 10.6.6.0/24
           gateway: 10.6.6.1
 
+# WebSploit2 Network configuration
   websploit2:
     driver: bridge
     ipam:

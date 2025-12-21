@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
@@ -12,4 +12,3 @@ RUN pip install flask
 EXPOSE 5000
 
 CMD ["python", "cmd-injection-example-app.py"]
-
