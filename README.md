@@ -65,27 +65,21 @@ WebSploit Labs includes a variety of vulnerable applications organized into two 
 
 #### Additional Vulnerability Labs
 
-Custom-built labs focusing on specific vulnerability categories (built from `./additional-labs/`):
+Custom-built labs focusing on specific vulnerability categories. These labs are built from the `./additional-labs/` directory.
 
 | Container | IP Address | Port | Vulnerability Type |
 |-----------|------------|------|-------------------|
 | **hydra-nexus** | 10.6.6.30 | 5010 | Multi-Vulnerability Gauntlet (SQLi, XSS, IDOR, XXE, etc.) |
 | **phantom-script** | 10.6.6.31 | 5011 | Cross-Site Scripting (Reflected, Stored, DOM) |
 | **trojan-relay** | 10.6.6.32 | 5012 | Server-Side Request Forgery (SSRF) |
-| **sqli-breach** | 10.6.6.33 | 5001 | SQL Injection |
+| **sqli-breach** | 10.6.6.33 | 5000 | SQL Injection |
 | **shell-inject** | 10.6.6.34 | 5002 | OS Command Injection |
 | **maze-walker** | 10.6.6.35 | 5003 | Path/Directory Traversal |
 | **entity-smuggler** | 10.6.6.36 | 5013 | XML External Entity (XXE) Injection |
 | **token-tower** | 10.6.6.40 | 5020 | JWT Vulnerability |
 | **render-reign** | 10.6.6.41 | 5021 | Server-Side Template Injection |
 | **deserial-gate** | 10.6.6.42 | 5022 | Insecure Deserialization |
-
-### WebSploit2 Network (10.7.7.0/24)
-
-| Container | IP Address | Description |
-|-----------|------------|-------------|
-| **dc31_01** | 10.7.7.21 | DEF CON 31 Challenge |
-| **dc31_03** | 10.7.7.23 | DEF CON 31 Challenge |
+| **redis-rogue** | 10.6.6.43 | - | DEF CON 31 Challenge |
 
 ---
 
