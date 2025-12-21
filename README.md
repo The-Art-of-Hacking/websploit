@@ -72,7 +72,7 @@ Custom-built labs focusing on specific vulnerability categories. These labs are 
 | **hydra-nexus** | 10.6.6.30 | 5010 | Multi-Vulnerability Gauntlet (SQLi, XSS, IDOR, XXE, etc.) |
 | **phantom-script** | 10.6.6.31 | 5011 | Cross-Site Scripting (Reflected, Stored, DOM) |
 | **trojan-relay** | 10.6.6.32 | 5012 | Server-Side Request Forgery (SSRF) |
-| **sqli-breach** | 10.6.6.33 | 5000 | SQL Injection |
+| **sqli-breach** | 10.6.6.33 | 5001 | SQL Injection |
 | **shell-inject** | 10.6.6.34 | 5002 | OS Command Injection |
 | **maze-walker** | 10.6.6.35 | 5003 | Path/Directory Traversal |
 | **entity-smuggler** | 10.6.6.36 | 5013 | XML External Entity (XXE) Injection |
@@ -80,6 +80,7 @@ Custom-built labs focusing on specific vulnerability categories. These labs are 
 | **render-reign** | 10.6.6.41 | 5021 | Server-Side Template Injection |
 | **deserial-gate** | 10.6.6.42 | 5022 | Insecure Deserialization |
 | **redis-rogue** | 10.6.6.43 | - | DEF CON 31 Challenge |
+| **graphql-galaxy** | 10.6.6.44 | 5023 | GraphQL Introspection, IDOR |
 
 ---
 
@@ -133,7 +134,8 @@ docker compose build --no-cache [container_name]
 │  ├── token-tower       10.6.6.40                            │
 │  ├── render-reign      10.6.6.41                            │
 │  ├── deserial-gate     10.6.6.42                            │
-│  └── redis-rogue       10.6.6.43                            │
+│  ├── redis-rogue       10.6.6.43                            │
+│  └── graphql-galaxy    10.6.6.44                            │
 └─────────────────────────────────────────────────────────────┘
 ```
 

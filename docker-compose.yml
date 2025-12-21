@@ -179,6 +179,17 @@ services:
       websploit:
         ipv4_address: 10.6.6.43
 
+  # GraphQL Lab
+  graphql-galaxy:
+    build: ./additional-labs/GraphQL
+    container_name: graphql-galaxy
+    ports:
+      - "5023:5023"
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.44
+    restart: unless-stopped
+
 # Network configuration
 networks:
   websploit:
