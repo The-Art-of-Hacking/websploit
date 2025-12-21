@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client-Side Logic Lab</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .lab-section { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; border-radius: 5px; }
+        h2 { color: #d32f2f; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        input { padding: 10px; width: 300px; }
+        .result { margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Client-Side Logic & Prototype Pollution</h1>
+
+    <!-- Lab 1: DOM Clobbering -->
+    <div class="lab-section">
+        <h2>Lab 1: DOM Clobbering</h2>
+        <p>Goal: Inject HTML to clobber the global <code>config</code> variable and force the application to load a malicious script (or simulate it).</p>
+        <p>The application runs this logic:</p>
+        <pre>
+window.onload = function() {
+    let scriptUrl = window.config?.scriptUrl || 'default.js';
+    document.getElementById('current-script').innerText = "Loading script: " + scriptUrl;
+};
+        </pre>
+        
+        <!-- Vulnerable Output Sink -->
+        <div id="user-content">
+            <!-- This simulates user-controlled content being rendered without proper sanitization -->
+            <!-- In a real scenario, this would be an XSS sink or content injection point -->
+            <!-- For this lab, enter HTML below to see it rendered here -->
+        </div>
+
+        <h3>Inject HTML:</h3>
+        <textarea id="html-input" rows="4" cols="50" placeholder="Enter HTML here (e.g. <a id=config>...</a>)"></textarea><br>
+        <button onclick="renderUserHtml()">Inject & Reload</button>
+        
+        <p>Current Status: <span id="current-script">Waiting...</span></p>
+    </div>
+
+    <!-- Lab 2: Prototype Pollution -->
+    <div class="lab-section">
+        <h2>Lab 2: Server-Side Prototype Pollution</h2>
+        <p>Goal: Pollute the server-side Object prototype to gain Admin access.</p>
+        <p>Send a JSON payload to merge settings. If successful, <code>isAdmin</code> will become true for all objects.</p>
+        
+        <h3>Update Settings:</h3>
+        <textarea id="json-input" rows="4" cols="50">{"theme": "dark"}</textarea><br>
+        <button onclick="sendUpdate()">Send Update</button>
+        
+        <div id="server-response" class="result"></div>
+        <br>
+        <button onclick="checkAdmin()">Check Admin Access</button>
+        <div id="admin-status" class="result"></div>
+    </div>
+
+    <script>
+        // Vulnerable DOM Clobbering Logic
+        function renderUserHtml() {
+            const input = document.getElementById('html-input').value;
+            // DANGEROUS: Directly setting innerHTML (simulating an XSS/injection sink)
+            document.getElementById('user-content').innerHTML = input;
+            
+            // Re-run the vulnerable logic to see if 'config' was clobbered
+            setTimeout(() => {
+                let scriptUrl = 'default.js';
+                
+                // Vulnerable check
+                if (window.config && window.config.scriptUrl) {
+                    scriptUrl = window.config.scriptUrl;
+                    
+                    // Note: In real DOM clobbering with <a> tags, toString() gives the href.
+                    // We simulate this behavior check.
+                    if (typeof scriptUrl === 'object') { // It might be an element collection if clobbered
+                         scriptUrl = scriptUrl.toString();
+                    }
+                }
+                
+                document.getElementById('current-script').innerText = "Loading script: " + scriptUrl;
+                
+                if (scriptUrl.includes('malicious')) {
+                    alert("DOM Clobbering Successful! Malicious script path detected.");
+                }
+            }, 100);
+        }
+
+        // Prototype Pollution Logic
+        async function sendUpdate() {
+            const input = document.getElementById('json-input').value;
+            try {
+                const json = JSON.parse(input);
+                const response = await fetch('/api/update-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(json)
+                });
+                const result = await response.json();
+                document.getElementById('server-response').innerText = JSON.stringify(result, null, 2);
+            } catch (e) {
+                document.getElementById('server-response').innerText = "Error: " + e.message;
+            }
+        }
+
+        async function checkAdmin() {
+            try {
+                const response = await fetch('/api/admin-check');
+                const result = await response.json();
+                document.getElementById('admin-status').innerText = result.message;
+                if(result.flag) {
+                    document.getElementById('admin-status').innerText += "\n" + result.flag;
+                    document.getElementById('admin-status').style.color = "green";
+                }
+            } catch (e) {
+                document.getElementById('admin-status').innerText = "Error: " + e.message;
+            }
+        }
+    </script>
+</body>
+</html>
+
