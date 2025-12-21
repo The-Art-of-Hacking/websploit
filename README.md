@@ -143,11 +143,7 @@ docker compose build --no-cache [container_name]
 └─────────────────────────────────────────────────────────────┘
 ```
 
----
 
-## Verification Steps
-
-- You can **verify the integrity** of the `install.sh` script by checking its SHA-512 checksum [here](https://websploit.org).
 
 ---
 
