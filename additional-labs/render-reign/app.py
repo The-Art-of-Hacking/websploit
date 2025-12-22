@@ -5,9 +5,9 @@ app = Flask(__name__)
 TEMPLATE = """
 <!DOCTYPE html>
 <html>
-<head><title>Render Reign</title></head>
+<head><title>WebSploit Labs Template Preview Service</title></head>
 <body>
-    <h1>Template Preview Service</h1>
+    <h1>WebSploit Labs Template Preview Service</h1>
     <p>Enter your name to generate a custom badge:</p>
     <form>
         <input type="text" name="name" placeholder="Enter name">

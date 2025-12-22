@@ -136,7 +136,7 @@ def index():
     <body>
         <div class="container">
             <div class="card">
-                <h1>NetOps Connectivity Dashboard</h1>
+                <h1>WebSploit Labs NetOps Connectivity Dashboard</h1>
                 <p class="subtitle">Internal network diagnostic utility for authorized personnel only.</p>
                 
                 <form method="POST">
@@ -155,7 +155,7 @@ def index():
                 {% endif %}
             </div>
             <footer>
-                &copy; 2026 Omar Santos. All rights reserved. <br>
+                Websploit Labs by Omar Santos. <br>
                 Authorized access only. Activity is logged.
             </footer>
         </div>

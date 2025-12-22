@@ -1,14 +1,16 @@
 FROM node:14-alpine
 
+# Set the working directory
 WORKDIR /usr/src/app
 
-COPY package*.json ./
-
+# Install the dependencies
 RUN npm install
 
-COPY . .
+# Copy the server.js file
+COPY server.js .
 
-EXPOSE 3000
+# Expose the port
+EXPOSE 5004
 
+# Run the application
 CMD [ "node", "server.js" ]
-

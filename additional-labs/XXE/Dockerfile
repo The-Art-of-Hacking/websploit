@@ -5,14 +5,11 @@ WORKDIR /app
 # Copy the xxe_app.py file
 COPY xxe_app.py .
 
-# Copy the requirements.txt file
-COPY requirements.txt .
-
 # Install the dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install flask requests urllib3
 
 # Expose the port
-EXPOSE 5013
+EXPOSE 5014
 
 # Run the application   
 CMD ["python", "xxe_app.py"]

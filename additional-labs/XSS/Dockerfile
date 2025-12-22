@@ -5,14 +5,11 @@ WORKDIR /app
 # Copy the xss_app.py file
 COPY xss_app.py .
 
-# Copy the requirements.txt file
-COPY requirements.txt .
-
 # Install the dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install flask requests urllib3
 
 # Expose the port
-EXPOSE 5011
+EXPOSE 5006
 
 # Run the application
 CMD ["python", "xss_app.py"]
