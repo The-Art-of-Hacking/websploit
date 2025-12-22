@@ -5,7 +5,7 @@ import base64
 app = Flask(__name__)
 
 HOME_HTML = """
-<h2>Deserialization Gateway</h2>
+<h2>WebSploit Labs Deserialization Gateway</h2>
 <p>We use advanced Python objects to store your preferences cookie.</p>
 <p>Current Preference: {{ pref }}</p>
 <form method="POST" action="/set_pref">

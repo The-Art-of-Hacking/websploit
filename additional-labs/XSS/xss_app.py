@@ -692,5 +692,5 @@ def widget():
 
 if __name__ == '__main__':
     print("Starting SecretCorp Application...")
-    print("Server running on http://0.0.0.0:5011")
-    app.run(host='0.0.0.0', port=5011, debug=True)
+    print("Server running on http://0.0.0.0:5006")
+    app.run(host='0.0.0.0', port=5006, debug=True)

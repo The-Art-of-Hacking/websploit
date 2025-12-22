@@ -128,7 +128,7 @@ def index():
             </style>
         </head>
         <body>
-            <h1>Galactic Communications Hub</h1>
+            <h1>WebSploit Labs Galactic Communications Hub</h1>
             <p>Welcome to the secure internal API.</p>
             <p>Access the GraphiQL Interface below:</p>
             <br>

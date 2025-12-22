@@ -1,11 +1,13 @@
 FROM python:3.9-slim
 
+# Set the working directory
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install the dependencies
+RUN pip install flask graphene flask-graphql werkzeug
 
-COPY . .
+# Copy the app.py file
+COPY app.py .
 
 EXPOSE 5023
 

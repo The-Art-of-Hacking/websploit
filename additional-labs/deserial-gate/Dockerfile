@@ -1,14 +1,12 @@
 FROM python:3.14-slim
 
+# Set the working directory
 WORKDIR /app
 
-# Copy the requirements.txt file
-COPY requirements.txt .
-
 # Install the dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install flask
 
-# Copy the rest of the application
+# Copy the app.py file
 COPY app.py .
 
 # Run the application
