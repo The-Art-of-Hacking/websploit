@@ -4,6 +4,22 @@ This directory contains an additional collection of vulnerable web applications 
 
 > **Note:** These labs are now integrated into the main `docker-compose.yml` in the root directory and run on the primary `websploit` network (10.6.6.0/24).
 
+## Directory to Container Mapping
+
+| Directory Name | Container Name | Vulnerability / Lab Type |
+| :--- | :--- | :--- |
+| `Command_Injection` | `shell-inject` | Command Injection |
+| `deserial-gate` | `deserial-gate` | Insecure Deserialization |
+| `GraphQL` | `graphql-galaxy` | GraphQL API Hacking |
+| `Multi-Vulnerability-Gauntlet` | `hydra-nexus` | Multiple Vulnerabilities |
+| `Path_Traversal` | `maze-walker` | Path Traversal |
+| `render-reign` | `render-reign` | Server-Side Template Injection (SSTI) |
+| `SQLi` | `sqli-breach` | SQL Injection |
+| `SSRF` | `trojan-relay` | Server-Side Request Forgery |
+| `token-tower` | `token-tower` | JWT / Identity Attacks |
+| `XSS` | `phantom-script` | Cross-Site Scripting (XSS) |
+| `XXE` | `entity-smuggler` | XML External Entity (XXE) |
+
 
 # Network Topology
 The following is the network topology of WebSploit Labs.
