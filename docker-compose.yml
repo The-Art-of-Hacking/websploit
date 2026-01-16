@@ -190,6 +190,17 @@ services:
         ipv4_address: 10.6.6.44
     restart: unless-stopped
 
+  # Prototype Pollution Lab
+  proto-pollute:
+    build: ./additional-labs/Prototype_Pollution
+    container_name: proto-pollute
+    ports:
+      - "5004:5004"
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.45
+    restart: unless-stopped
+
 # Network configuration
 networks:
   websploit:
