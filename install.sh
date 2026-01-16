@@ -158,8 +158,14 @@ docker-compose -f docker-compose.yml up -d
 #--------------------------------------------------
 echo "[+] Installing radamsa..."
 cd /root
-git clone https://gitlab.com/akihe/radamsa.git
-cd radamsa
+if [ -d "radamsa" ]; then
+    echo "[*] Directory 'radamsa' already exists. Pulling latest changes..."
+    cd radamsa && git pull
+else
+    echo "[+] Cloning radamsa..."
+    git clone https://gitlab.com/akihe/radamsa.git
+    cd radamsa
+fi
 make && make install
 
 #--------------------------------------------------
@@ -168,8 +174,14 @@ make && make install
 #--------------------------------------------------
 echo "[+] Installing Sublist3r in the same Python venv..."
 cd /root
-git clone https://github.com/aboul3la/Sublist3r.git
-cd Sublist3r
+if [ -d "Sublist3r" ]; then
+    echo "[*] Directory 'Sublist3r' already exists. Pulling latest changes..."
+    cd Sublist3r && git pull
+else
+    echo "[+] Cloning Sublist3r..."
+    git clone https://github.com/aboul3la/Sublist3r.git
+    cd Sublist3r
+fi
 
 # Reactivate the venv
 source "$VENV_DIR/bin/activate"
@@ -180,7 +192,7 @@ deactivate
 # 10) Install enum4linux-ng
 #--------------------------------------------------
 cd /root
-git clone https://github.com/cddmp/enum4linux-ng
+clone_or_update https://github.com/cddmp/enum4linux-ng.git
 # You can also pip-install it in the venv if you want
 
 #--------------------------------------------------
@@ -189,7 +201,13 @@ git clone https://github.com/cddmp/enum4linux-ng
 distribution=$(lsb_release -i | awk '{print $NF}')
 if [[ "$distribution" == "Parrot" ]]; then
   echo "[+] Installing searchsploit for Parrot..."
-  git clone https://github.com/offensive-security/exploitdb.git /opt/exploitdb
+  if [ -d "/opt/exploitdb" ]; then
+    echo "[*] Directory '/opt/exploitdb' already exists. Pulling latest changes..."
+    cd /opt/exploitdb && git pull
+  else
+    echo "[+] Cloning exploitdb..."
+    git clone https://github.com/offensive-security/exploitdb.git /opt/exploitdb
+  fi
   ln -sf /opt/exploitdb/searchsploit /usr/local/bin/searchsploit
 fi
 
