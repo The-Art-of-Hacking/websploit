@@ -49,6 +49,7 @@ cursor.execute(query, (username, password))
 ```
 
 ## References
+For more information on SQL Injection vulnerabilities and secure coding practices, check out these resources:
 - [OWASP SQL Injection](https://owasp.org/www-community/attacks/SQL_Injection)
 - **Redefining Hacking: A Comprehensive Guide to Red Teaming and Bug Bounty Hunting in an AI-driven World** - [Available on O'Reilly](https://learning.oreilly.com/library/view/redefining-hacking-a/9780138363635/)
 - **Developing Cybersecurity Programs and Policies in an AI-Driven World** - [Available on O'Reilly](https://learning.oreilly.com/library/view/developing-cybersecurity-programs/9780138073992)

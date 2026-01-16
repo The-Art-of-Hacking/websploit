@@ -774,7 +774,8 @@ curl http://localhost:5020/api/admin/flag \
 
 ---
 
-## Additional Resources
+## References
+To learn more about JWT vulnerabilities and secure coding practices, check out these resources:
 
 - **JWT Debugger**: https://jwt.io
 - **jwt_tool**: https://github.com/ticarpi/jwt_tool
@@ -782,10 +783,15 @@ curl http://localhost:5020/api/admin/flag \
 - **PortSwigger JWT Attacks**: https://portswigger.net/web-security/jwt
 - **RFC 7519 (JWT)**: https://datatracker.ietf.org/doc/html/rfc7519
 
----
+## Additional References
 
-## License
-
-This lab is part of WebSploit Labs, created for educational purposes by Omar Santos.
-
-**⚠️ WARNING:** This application contains intentional security vulnerabilities. Use only in controlled lab environments. Never use these techniques against systems without explicit authorization.
+- **Building the Ultimate Cybersecurity Lab and Cyber Range (video)** - [Available on O'Reilly](https://learning.oreilly.com/course/building-the-ultimate/9780138319090/)
+- **Build Your Own AI Lab (video)** - [Available on O'Reilly](https://learning.oreilly.com/course/build-your-own/9780135439616)
+- **Defending and Deploying AI (video)** - [Available on O'Reilly](https://www.oreilly.com/videos/defending-and-deploying/9780135463727/)
+- **AI-Enabled Programming, Networking, and Cybersecurity** - [Available on O'Reilly](https://learning.oreilly.com/course/ai-enabled-programming-networking/9780135402696/)
+- **Securing Generative AI** - [Available on O'Reilly](https://learning.oreilly.com/course/securing-generative-ai/9780135401804/)
+- **The Art of Hacking** - [Visit The Art of Hacking](https://theartofhacking.org)
+- **Hacking Scenarios (Labs) in O'Reilly** - [https://hackingscenarios.com](https://hackingscenarios.com)
+- **GitHub Repository** - [Visit GitHub Repo](https://hackerrepo.org)
+- **WebSploit Labs** - [Visit WebSploit Labs](https://websploit.org)
+- **NetAcad Ethical Hacker Free Course** - [Available (free) on NetAcad Skills for All](https://www.netacad.com/courses/ethical-hacker?courseLang=en-US)

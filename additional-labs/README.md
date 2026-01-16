@@ -13,6 +13,7 @@ This directory contains an additional collection of vulnerable web applications 
 | `GraphQL` | `graphql-galaxy` | GraphQL API Hacking |
 | `Multi-Vulnerability-Gauntlet` | `hydra-nexus` | Multiple Vulnerabilities |
 | `Path_Traversal` | `maze-walker` | Path Traversal |
+| `Prototype_Pollution` | `proto-pollute` | Prototype Pollution / DOM Clobbering |
 | `render-reign` | `render-reign` | Server-Side Template Injection (SSTI) |
 | `SQLi` | `sqli-breach` | SQL Injection |
 | `SSRF` | `trojan-relay` | Server-Side Request Forgery |
@@ -48,6 +49,7 @@ The following is the network topology of WebSploit Labs.
 │  ├── render-reign      10.6.6.41                            │
 │  ├── deserial-gate     10.6.6.42                            │
 │  ├── redis-rogue       10.6.6.43                            │
-│  └── graphql-galaxy    10.6.6.44                            │
+│  ├── graphql-galaxy    10.6.6.44                            │
+│  └── proto-pollute     10.6.6.45                            │
 └─────────────────────────────────────────────────────────────┘
 ```
