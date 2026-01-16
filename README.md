@@ -83,6 +83,7 @@ Custom-built labs focusing on specific vulnerability categories. These labs are 
 | **deserial-gate** | 10.6.6.42 | 5022 | Insecure Deserialization |
 | **redis-rogue** | 10.6.6.43 | - | DEF CON 31 Challenge |
 | **graphql-galaxy** | 10.6.6.44 | 5023 | GraphQL Introspection, IDOR |
+| **proto-pollute** | 10.6.6.45 | 5004 | Prototype Pollution / DOM Clobbering |
 
 ---
 
@@ -137,7 +138,8 @@ docker compose build --no-cache [container_name]
 │  ├── render-reign      10.6.6.41                            │
 │  ├── deserial-gate     10.6.6.42                            │
 │  ├── redis-rogue       10.6.6.43                            │
-│  └── graphql-galaxy    10.6.6.44                            │
+│  ├── graphql-galaxy    10.6.6.44                            │
+│  └── proto-pollute     10.6.6.45                            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
