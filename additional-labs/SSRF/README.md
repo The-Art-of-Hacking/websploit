@@ -327,7 +327,7 @@ curl -X POST http://localhost:5012/fetch -d "url=http://127.0.0.1:22"
 
 5. **Detection**: What monitoring strategies would help detect SSRF attacks?
 
-## 📚 Additional Resources
+## 📚 References
 
 - [OWASP Server-Side Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)
 - [PortSwigger Web Security - SSRF](https://portswigger.net/web-security/ssrf)
@@ -338,3 +338,15 @@ curl -X POST http://localhost:5012/fetch -d "url=http://127.0.0.1:22"
 - [NIST Cybersecurity Framework](https://www.nist.gov/cybersecurity-framework)
 - [PortSwigger Web Security Academy](https://portswigger.net/web-security-academy)
 
+## Additional References
+
+- **Building the Ultimate Cybersecurity Lab and Cyber Range (video)** - [Available on O'Reilly](https://learning.oreilly.com/course/building-the-ultimate/9780138319090/)
+- **Build Your Own AI Lab (video)** - [Available on O'Reilly](https://learning.oreilly.com/course/build-your-own/9780135439616)
+- **Defending and Deploying AI (video)** - [Available on O'Reilly](https://www.oreilly.com/videos/defending-and-deploying/9780135463727/)
+- **AI-Enabled Programming, Networking, and Cybersecurity** - [Available on O'Reilly](https://learning.oreilly.com/course/ai-enabled-programming-networking/9780135402696/)
+- **Securing Generative AI** - [Available on O'Reilly](https://learning.oreilly.com/course/securing-generative-ai/9780135401804/)
+- **The Art of Hacking** - [Visit The Art of Hacking](https://theartofhacking.org)
+- **Hacking Scenarios (Labs) in O'Reilly** - [https://hackingscenarios.com](https://hackingscenarios.com)
+- **GitHub Repository** - [Visit GitHub Repo](https://hackerrepo.org)
+- **WebSploit Labs** - [Visit WebSploit Labs](https://websploit.org)
+- **NetAcad Ethical Hacker Free Course** - [Available (free) on NetAcad Skills for All](https://www.netacad.com/courses/ethical-hacker?courseLang=en-US)

@@ -677,8 +677,8 @@ Comment: <script>
 
 6. **Detection**: How can organizations detect XSS attacks in their applications?
 
-### 📚 Additional Resources
-
+  ### 📚 References
+  To learn more about XSS vulnerabilities and secure coding practices, check out these resources:
 - [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/)
 - [OWASP Top 10 Web Application Security Risks](https://owasp.org/Top10/)
 - [OWASP Web Security Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
@@ -686,3 +686,17 @@ Comment: <script>
 - [OWASP AI Red Teaming & Evaluation](https://genai.owasp.org/initiatives/#ai-redteaming)
 - [NIST Cybersecurity Framework](https://www.nist.gov/cybersecurity-framework)
 - [PortSwigger Web Security Academy](https://portswigger.net/web-security-academy)
+- **Building the Ultimate Cybersecurity Lab and Cyber Range (video)** - [Available on O'Reilly](https://learning.oreilly.com/course/building-the-ultimate/9780138319090/)
+- **Build Your Own AI Lab (video)** - [Available on O'Reilly](https://learning.oreilly.com/course/build-your-own/9780135439616)
+- **Defending and Deploying AI (video)** - [Available on O'Reilly](https://www.oreilly.com/videos/defending-and-deploying/9780135463727/)
+- **AI-Enabled Programming, Networking, and Cybersecurity** - [Available on O'Reilly](https://learning.oreilly.com/course/ai-enabled-programming-networking/9780135402696/)
+- **Securing Generative AI** - [Available on O'Reilly](https://learning.oreilly.com/course/securing-generative-ai/9780135401804/)
+- **The Art of Hacking** - [Visit The Art of Hacking](https://theartofhacking.org)
+- **Hacking Scenarios (Labs) in O'Reilly** - [https://hackingscenarios.com](https://hackingscenarios.com)
+- **GitHub Repository** - [Visit GitHub Repo](https://hackerrepo.org)
+- **WebSploit Labs** - [Visit WebSploit Labs](https://websploit.org)
+- **NetAcad Ethical Hacker Free Course** - [Available (free) on NetAcad Skills for All](https://www.netacad.com/courses/ethical-hacker?courseLang=en-US)
+- **Redefining Hacking: A Comprehensive Guide to Red Teaming and Bug Bounty Hunting in an AI-driven World** - [Available on O'Reilly](https://learning.oreilly.com/library/view/redefining-hacking-a/9780138363635/)
+- **Developing Cybersecurity Programs and Policies in an AI-Driven World** - [Available on O'Reilly](https://learning.oreilly.com/library/view/developing-cybersecurity-programs/9780138073992)
+- **Beyond the Algorithm: AI, Security, Privacy, and Ethics** - [Available on O'Reilly](https://learning.oreilly.com/library/view/beyond-the-algorithm/9780138268442)
+- **The AI Revolution in Networking, Cybersecurity, and Emerging Technologies** - [Available on O'Reilly](https://learning.oreilly.com/library/view/the-ai-revolution/9780138293703)
