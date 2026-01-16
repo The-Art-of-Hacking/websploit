@@ -27,10 +27,12 @@ Download and install **Kali Linux** or **Parrot OS** (whichever you prefer) in a
 ---
 
 ### Step 2: Install WebSploit Labs
-Once your Kali or Parrot VM is ready, open a terminal and run the following command to set up WebSploit Labs:
+Once your Kali or Parrot VM is ready, open a terminal and run the following commands to clone the repository and set up WebSploit Labs:
 
 ```bash
-curl -sSL https://websploit.org/install.sh | sudo bash
+git clone https://github.com/The-Art-of-Hacking/websploit.git
+cd websploit
+sudo bash install.sh
 ```
 
 This script will:
