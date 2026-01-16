@@ -44,6 +44,13 @@ The application is vulnerable to Prototype Pollution because it uses an unsafe r
 The application should use a safe merge function that validates keys and does not allow the attacker to pollute the `Object.prototype`.
 
 ## References
+For more information on prototype pollution and DOM clobbering vulnerabilities and secure coding practices, check out these resources:
+- [WebSploit Labs Prototype Pollution Vulnerability](../../knowledge-base/vulnerabilities/prototype-pollution.md)
+- [WebSploit Labs DOM Clobbering Vulnerability](../../knowledge-base/vulnerabilities/dom-clobbering.md)
+- [WebSploit Labs Prototype Pollution Mitigation](../../knowledge-base/mitigations/prototype-pollution-mitigation.md)
+- [WebSploit Labs DOM Clobbering Mitigation](../../knowledge-base/mitigations/dom-clobbering-mitigation.md)
+
 - [OWASP Prototype Pollution](https://owasp.org/www-community/attacks/Prototype_Pollution)
 - [PortSwigger - Prototype Pollution](https://portswigger.net/web-security/prototype-pollution)
 - [PortSwigger - DOM Clobbering](https://portswigger.net/web-security/dom-based/dom-clobbering)
+
