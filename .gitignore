@@ -12,3 +12,6 @@ __pycache__
 websploit.db
 uploads
 backups
+
+# Cursor
+.cursor/
