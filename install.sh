@@ -115,11 +115,26 @@ sudo systemctl enable docker --now
 #--------------------------------------------------
 echo "[+] Cloning GitHub repos..."
 cd /root
-git clone https://github.com/The-Art-of-Hacking/h4cker.git
-git clone https://github.com/danielmiessler/SecLists.git
-git clone https://github.com/internetwache/GitTools.git
-git clone https://github.com/swisskyrepo/PayloadsAllTheThings.git
-git clone https://github.com/The-Art-of-Hacking/websploit.git
+
+# Helper function to clone or update a repo
+clone_or_update() {
+    local repo_url="$1"
+    local dir_name=$(basename "$repo_url" .git)
+    
+    if [ -d "$dir_name" ]; then
+        echo "[*] Directory '$dir_name' already exists. Pulling latest changes..."
+        cd "$dir_name" && git pull && cd ..
+    else
+        echo "[+] Cloning $repo_url..."
+        git clone "$repo_url"
+    fi
+}
+
+clone_or_update https://github.com/The-Art-of-Hacking/h4cker.git
+clone_or_update https://github.com/danielmiessler/SecLists.git
+clone_or_update https://github.com/internetwache/GitTools.git
+clone_or_update https://github.com/swisskyrepo/PayloadsAllTheThings.git
+clone_or_update https://github.com/The-Art-of-Hacking/websploit.git
 
 # IoT firmware exercises for reverse engineering courses
 mkdir -p /root/iot_exercises
