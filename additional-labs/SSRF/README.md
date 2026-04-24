@@ -1,7 +1,7 @@
 # SSRF Forge: A WebSploit Labs Internal Threat Simulation
 
-**Lab Name:** `trojan-relay`
-**Vulnerability:** Server-Side Request Forgery (SSRF)
+- **Lab Name:** `trojan-relay`
+- **Vulnerability:** Server-Side Request Forgery (SSRF)
 
 This lab is part of the WebSploit Labs framework and it is running on the `trojan-relay` container on the `10.6.6.32` IP address.
 Access the lab at `http://10.6.6.32:5012`.
