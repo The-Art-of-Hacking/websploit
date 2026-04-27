@@ -50,6 +50,11 @@ services:
         ipv4_address: 10.6.6.23
 
 # Star Wars themed CTF challenge
+# Note: this image is amd64-only. On Apple Silicon / ARM64 hosts the Go runtime
+# inside this container can crash under QEMU emulation ("lfstack.push invalid
+# packing"). See the Troubleshooting section in README.md and issue #82
+# (https://github.com/The-Art-of-Hacking/websploit/issues/82) for workarounds
+# (Rosetta on Docker Desktop, an x86_64 host, or skipping this service).
   y-wing:
     container_name: y-wing
     image: santosomar/ywing:latest
