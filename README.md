@@ -182,7 +182,7 @@ Inside an ARM Linux host (e.g., Kali on UTM), register multi-arch handlers befor
 
 ```bash
 sudo docker run --privileged --rm tonistiigi/binfmt --install amd64
-docker compose up -d
+sudo docker compose up -d
 ```
 
 This makes most amd64 containers run, but `y-wing` will still crash because of the Go-runtime issue described above.
