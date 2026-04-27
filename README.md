@@ -151,7 +151,7 @@ docker compose build --no-cache [container_name]
 
 ### Apple Silicon (M1/M2/M3/M4) and other ARM64 hosts
 
-Several containers in this lab (`webgoat`, `dvwa`, `galactic-archives`, `gravemind`, `y-wing`, `redis-rogue`) are published as `linux/amd64`-only images and run under emulation on ARM64 hosts. Most work fine, but some — notably **`y-wing`** — are Go binaries that crash under QEMU user-mode emulation with errors like:
+Several containers in this lab (`webgoat`, `dvwa`, `galactic-archives`, `gravemind`, `y-wing`, `redis-rogue`) are configured to run as `linux/amd64` and therefore run under emulation on ARM64 hosts. Most work fine, but some — notably **`y-wing`** — are Go binaries that crash under QEMU user-mode emulation with errors like:
 
 ```
 runtime: lfstack.push invalid packing
