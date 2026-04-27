@@ -147,6 +147,58 @@ docker compose build --no-cache [container_name]
 
 ---
 
+## Troubleshooting
+
+### Apple Silicon (M1/M2/M3/M4) and other ARM64 hosts
+
+Several containers in this lab (`webgoat`, `dvwa`, `galactic-archives`, `gravemind`, `y-wing`, `redis-rogue`) are configured to run as `linux/amd64` and therefore run under emulation on ARM64 hosts. Most work fine, but some — notably **`y-wing`** — are Go binaries that crash under QEMU user-mode emulation with errors like:
+
+```
+runtime: lfstack.push invalid packing
+fatal error: lfstack.push
+```
+
+This is a known incompatibility between Go's runtime pointer packing and QEMU's x86-on-ARM emulation. It is not a configuration bug in this repo — see [issue #82](https://github.com/The-Art-of-Hacking/websploit/issues/82).
+
+Pick whichever option fits your setup:
+
+#### Option 1 (recommended for Apple Silicon): Use Docker Desktop with Rosetta 2
+
+Run Docker Desktop directly on macOS (instead of Docker inside a Kali ARM VM) so amd64 emulation goes through Apple's Rosetta 2, which handles Go binaries reliably:
+
+1. Docker Desktop → **Settings → General** → enable **"Use Virtualization framework"**
+2. Docker Desktop → **Settings → General** → enable **"Use Rosetta for x86_64/amd64 emulation on Apple Silicon"**
+3. Restart Docker Desktop, then `docker compose up -d`.
+
+You can still run Kali in a separate VM for the offensive tooling and reach the labs over the network at the documented `10.6.6.x` addresses (or via host-port mappings).
+
+#### Option 2: Run on an x86_64 host
+
+Use the supplied `Vagrantfile` on an Intel/AMD machine, or deploy to any x86_64 cloud VM (AWS, GCP, Azure, DigitalOcean, etc.). No emulation involved, everything works as designed.
+
+#### Option 3: Install QEMU binfmt handlers (helps most amd64 images, not y-wing)
+
+Inside an ARM Linux host (e.g., Kali on UTM), register multi-arch handlers before bringing the stack up:
+
+```bash
+sudo docker run --privileged --rm tonistiigi/binfmt --install amd64
+sudo docker compose up -d
+```
+
+This makes most amd64 containers run, but `y-wing` will still crash because of the Go-runtime issue described above.
+
+#### Option 4: Skip y-wing
+
+If you cannot use options 1–3, start everything except `y-wing`:
+
+```bash
+docker compose up -d $(docker compose config --services | grep -v '^y-wing$')
+```
+
+Or comment out the `y-wing` service block in `docker-compose.yml`. The rest of the labs are independent.
+
+---
+
 ## Disclaimer
 
 > **WARNING**: These applications are **intentionally vulnerable**. They are **NOT malware or malicious**. They are only for educational purposes.
