@@ -57,14 +57,28 @@ def compose_config(profile: str | None) -> dict:
     # drops networks that no enabled service references, and no service
     # joins that network until the marionette lab.
     # --profile is a global flag and must come before the subcommand.
-    command = ["docker", "compose", "--all-resources", "config", "--format", "json"]
-    if profile:
-        command[2:2] = ["--profile", profile]
-    completed = subprocess.run(command, cwd=ROOT, check=False, capture_output=True, text=True)
+    completed = _run_compose(profile, all_resources=True)
+    if completed.returncode != 0 and _missing_all_resources(completed.stderr):
+        completed = _run_compose(profile, all_resources=False)
     if completed.returncode != 0:
         sys.stderr.write(completed.stderr)
         raise SystemExit(f"docker compose config failed ({completed.returncode})")
     return json.loads(completed.stdout)
+
+
+def _run_compose(profile: str | None, all_resources: bool) -> subprocess.CompletedProcess[str]:
+    command = ["docker", "compose"]
+    if profile:
+        command.extend(["--profile", profile])
+    if all_resources:
+        command.append("--all-resources")
+    command.extend(["config", "--format", "json"])
+    return subprocess.run(command, cwd=ROOT, check=False, capture_output=True, text=True)
+
+
+def _missing_all_resources(stderr: str) -> bool:
+    lowered = stderr.lower()
+    return "all-resources" in lowered and "unknown flag" in lowered
 
 
 def service_names(config: dict) -> list[str]:

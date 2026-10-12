@@ -70,7 +70,7 @@ OWASP/classic apps and CTFs (`webgoat`, `juice-shop`, `dvwa`, `galactic-archives
 - Custom labs use `build: ./additional-labs/<dir>` and expose ports on the host.
 - Prebuilt amd64 images set `platform: linux/amd64` (important for Apple Silicon hosts).
 - Host port → container port mapping is intentional and documented in `README.md`. Do not change a port without also updating the top-level README, the track README (`additional-labs/README.md` or `agentic-ai-labs/README.md`), and the lab's own README.
-- AI-track services set `profiles: ["ai"]` so a plain `docker compose up` does not start them. `mind-core` is the shared backend. Do not attach a container to `websploit-isolated` until the marionette lab.
+- AI-track services set `profiles: ["ai"]` so a plain `docker compose up` does not start them. `mind-core` is the shared backend. Do not attach a container to `websploit-isolated` until the marionette lab. Compose does not create that bridge until a service attaches, unless `docker compose --all-resources up` is used.
 
 When adding a classic lab:
 
