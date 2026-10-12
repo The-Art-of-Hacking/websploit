@@ -199,6 +199,22 @@ Or comment out the `y-wing` service block in `docker-compose.yml`. The rest of t
 
 ---
 
+## License
+
+WebSploit Labs is free software: you can redistribute it and/or modify it under the terms of the [GNU General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Copyright (C) 2019-2026 Omar Santos. Copies and modified versions must keep that copyright notice. The [`COPYRIGHT`](COPYRIGHT) file adds terms under GPL version 3, section 7, that require this author attribution to stay in the source and in any legal notices the program displays:
+
+```text
+WebSploit Labs
+Copyright (C) 2019-2026 Omar Santos
+https://websploit.org
+```
+
+Prebuilt container images (WebGoat, Juice Shop, DVWA, and the CTF images) keep their own licenses.
+
+---
+
 ## Disclaimer
 
 > **WARNING**: These applications are **intentionally vulnerable**. They are **NOT malware or malicious**. They are only for educational purposes.
