@@ -1,0 +1,117 @@
+# Opt-in AI track checks. This workflow does not replace generate_checksum.yml.
+#
+# ubuntu-latest is linux/amd64. The image job builds mind-core for linux/amd64
+# and linux/arm64. QEMU is registered only for that build step so the arm64
+# image can be built on the hosted amd64 runner. The smoke test runs the
+# native amd64 image. Booting arm64 under QEMU is unnecessary once the image
+# build itself succeeds, and it is much slower on a shared runner.
+
+name: AI track
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Contract tests
+        run: python3 -m unittest test_contract
+        working-directory: agentic-ai-labs/mind-core
+
+      - name: Compose config without a profile
+        run: docker compose config -q
+
+      # --profile is a global flag. `docker compose config -q --profile ai`
+      # fails on Compose v2 with "unknown flag: --profile".
+      - name: Compose config with the ai profile
+        run: docker compose --profile ai config -q
+
+      - name: Golden-stack guard
+        run: python3 .github/scripts/check_golden_stack.py
+
+  mind-core-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Register QEMU for the arm64 build
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build both platforms for real. Do not push. A multi-arch manifest
+      # cannot be --load'ed into the local engine, so the smoke test below
+      # builds the native image again through Compose. The OCI archive proves
+      # the multi-arch build produced an image.
+      - name: Build mind-core for linux/amd64 and linux/arm64
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --provenance=false \
+            --sbom=false \
+            --output type=oci,dest=/tmp/mind-core.oci \
+            ./agentic-ai-labs/mind-core
+          test -s /tmp/mind-core.oci
+
+      - name: Start mind-core in deterministic mode
+        run: docker compose --profile ai up -d --build mind-core
+
+      - name: Wait for the healthcheck and call the API
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 60))
+          status=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' mind-core || true)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$status" != "healthy" ]; then
+            docker logs mind-core || true
+            echo "mind-core health status: ${status}" >&2
+            exit 1
+          fi
+          python3 - << 'PY'
+          import json
+          import urllib.request
+
+          with urllib.request.urlopen("http://127.0.0.1:5030/health", timeout=5) as response:
+              body = json.load(response)
+              if response.status != 200 or body.get("status") != "ok" or body.get("ready") is not True:
+                  raise SystemExit(f"health failed: {body}")
+          request = urllib.request.Request(
+              "http://127.0.0.1:5030/v1/complete",
+              data=json.dumps({"prompt": "mind-core ping", "lab": "mind-core", "metadata": {}}).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(request, timeout=5) as response:
+              body = json.load(response)
+              if response.status != 200 or body.get("backend") != "deterministic" or body.get("fallback") is not False:
+                  raise SystemExit(f"complete failed: {body}")
+              if body.get("rule_id") != "mind-core-ping":
+                  raise SystemExit(f"unexpected rule: {body}")
+          print("smoke ok")
+          PY
+
+      - name: Stop mind-core
+        if: always()
+        run: docker compose --profile ai rm -sf mind-core

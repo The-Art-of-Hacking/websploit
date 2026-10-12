@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "echo": {
+    "id": "generic-echo",
+    "text": "No matching rule for lab {lab}. Prompt length {prompt_length}. Excerpt: {prompt_excerpt}"
+  },
+  "rules": [
+    {
+      "id": "mind-core-ping",
+      "match_type": "contains",
+      "match": "mind-core ping",
+      "text": "mind-core deterministic backend is ready."
+    },
+    {
+      "id": "mind-core-help",
+      "match_type": "contains",
+      "match": "mind-core help",
+      "text": "POST /v1/complete with a JSON prompt. Optional lab and metadata are accepted and are not executed."
+    },
+    {
+      "id": "acknowledge-lab",
+      "match_type": "contains",
+      "match": "acknowledge lab",
+      "text": "Acknowledged lab {lab}."
+    },
+    {
+      "id": "mind-core-self-check",
+      "lab": "mind-core",
+      "match_type": "exact",
+      "match": "self-check",
+      "text": "mind-core self-check ok."
+    }
+  ]
+}

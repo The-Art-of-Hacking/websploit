@@ -45,7 +45,7 @@ This script will:
 
 ## Available Containers
 
-WebSploit Labs includes a variety of vulnerable applications organized into two networks:
+WebSploit Labs includes a variety of vulnerable applications on the `websploit` bridge (`10.6.6.0/24`). An opt-in AI track stays out of `docker compose up` until you pass `--profile ai`. An internal network (`websploit-isolated`, `10.7.7.0/24`) is declared for a later lab and has no containers yet.
 
 ### WebSploit Network (10.6.6.0/24)
 
@@ -85,6 +85,26 @@ Custom-built labs focusing on specific vulnerability categories. These labs are 
 | **graphql-galaxy** | 10.6.6.44 | 5023 | GraphQL Introspection, IDOR |
 | **proto-pollute** | 10.6.6.45 | 5004 | Prototype Pollution / DOM Clobbering |
 
+#### Opt-in AI track (Compose profile `ai`)
+
+`docker compose up` does not start this track. Opt in with:
+
+```bash
+docker compose --profile ai up -d --build
+```
+
+To build and start only the shared backend:
+
+```bash
+docker compose --profile ai up -d --build mind-core
+```
+
+| Container | IP Address | Port | Role |
+| --- | --- | --- | --- |
+| **mind-core** | 10.6.6.50 | 5030 | Shared deterministic backend for later AI labs |
+
+`mind-core` is infrastructure, not a vulnerable challenge. Addresses `10.6.6.51`–`10.6.6.56` and host ports `5031`–`5036` are reserved for later labs and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
+
 ---
 
 ## Quick Start Commands
@@ -107,6 +127,9 @@ docker compose down
 
 # Rebuild specific containers
 docker compose build --no-cache [container_name]
+
+# Opt in to the AI track (mind-core). The commands above do not start it.
+docker compose --profile ai up -d --build mind-core
 ```
 
 ---
@@ -139,7 +162,13 @@ docker compose build --no-cache [container_name]
 │  ├── deserial-gate     10.6.6.42                            │
 │  ├── redis-rogue       10.6.6.43                            │
 │  ├── graphql-galaxy    10.6.6.44                            │
-│  └── proto-pollute     10.6.6.45                            │
+│  ├── proto-pollute     10.6.6.45                            │
+│  └── mind-core         10.6.6.50  (profile ai, port 5030)   │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  websploit-isolated (10.7.7.0/24, internal, no egress)      │
+│  No containers attach yet. Reserved for a later agent lab.  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -221,3 +250,5 @@ Prebuilt container images (WebGoat, Juice Shop, DVWA, and the CTF images) keep t
 > - Do **NOT** expose these containers to the public internet or untrusted networks.
 > - Run them only in a safe, isolated environment.
 > - Use them for educational and authorized testing purposes only.
+>
+> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. AI-track labs added later are intentionally vulnerable and are covered by this warning.
