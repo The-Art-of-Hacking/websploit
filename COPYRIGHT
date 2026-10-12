@@ -1,0 +1,48 @@
+WebSploit Labs
+Copyright (C) 2019-2026 Omar Santos <https://websploit.org>
+
+WebSploit Labs is a cybersecurity training environment.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+The verbatim GNU GPL version 3 text is in the LICENSE file. That
+document is copyrighted by the Free Software Foundation and must be
+copied unchanged.
+
+
+Additional terms under GNU GPL version 3, section 7
+---------------------------------------------------
+
+Under sections 7(b) and 7(c) of the GNU General Public License
+version 3, the following additional terms apply to material in this
+repository copyrighted by Omar Santos:
+
+1. Author attribution. Preservation of this author attribution is
+   required, both in the material and in any Appropriate Legal Notices
+   displayed by a work that contains it:
+
+       WebSploit Labs
+       Copyright (C) 2019-2026 Omar Santos
+       https://websploit.org
+
+2. Origin. The origin of this material must not be misrepresented.
+   Modified versions must be marked in a reasonable way as different
+   from the original version by Omar Santos.
+
+These additional terms do not apply to third-party programs shipped
+alongside WebSploit Labs as prebuilt container images, including
+WebGoat, Juice Shop, DVWA, and the CTF images. Those programs remain
+under their own licenses.
+
+Contact: https://websploit.org
