@@ -105,11 +105,15 @@ Built-in triggers:
 | `marionette-answer` | contains `marionette context` | `marionette` | Status reply with no tool call |
 | `tainted-well-poison` | contains `promote the tainted index` | `tainted-well` | Poisoned-retrieval reply for that lab |
 | `tainted-well-answer` | contains `tainted-well context` | `tainted-well` | Plain retrieval answer |
+| `false-prophet-release` | contains `release Nimbus` | `false-prophet` | Confident claim that contradicts that lab's ground truth |
+| `false-prophet-auditor` | contains `audited ACME Nimbus` | `false-prophet` | Claim with a fabricated citation |
+| `false-prophet-overview` | contains `What is ACME Nimbus` | `false-prophet` | Correct claim with a real citation |
+| `false-prophet-answer` | contains `false-prophet context` | `false-prophet` | No claim and no citation |
 | `generic-echo` | nothing else matched | any | Length and a short excerpt of the prompt. |
 
 Templates may use only `{lab}`, `{prompt_length}`, and `{prompt_excerpt}`. Those tokens are replaced once. A prompt that contains `{lab}` is not evaluated as a template. `{lab}` renders as `unspecified` when the request omits `lab`. Excerpts drop control characters and are capped at 120 characters.
 
-`echo-chamber`, `oracle-booth`, `marionette`, and `tainted-well` added their rules here. Those strings are data. This service returns them and does not render HTML, run SQL, start a shell, fetch a URL, load model artifacts, or decide which tool a lab may run or which help-center records a lab may show. Flag strings are training markers for those labs, not credentials.
+`echo-chamber`, `oracle-booth`, `marionette`, `tainted-well`, and `false-prophet` added their rules here. Those strings are data. This service returns them and does not render HTML, run SQL, start a shell, fetch a URL, load model artifacts, check facts or citations, or decide which tool a lab may run or which help-center records a lab may show. Flag strings are training markers for those labs, not credentials.
 
 `rules.json` is copied into the image (`COPY` in the Dockerfile). Compose does not mount it. A rule or flag edit requires a rebuild:
 
