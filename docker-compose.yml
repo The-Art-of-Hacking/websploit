@@ -213,8 +213,10 @@ services:
 # Opt-in AI track. Ignored by `docker compose up` unless `--profile ai` is set.
 # mind-core is shared infrastructure, not a vulnerable lab.
 # oracle-booth is the prompt-injection lab and is intentionally vulnerable.
+# marionette is the excessive-agency lab and is intentionally vulnerable.
+# It joins websploit and websploit-isolated. No other service joins the isolated network.
 # echo-chamber is the LLM05 lab and is intentionally vulnerable.
-# Reserved and not created here: 10.6.6.52-.53, 10.6.6.55-.56 and host ports 5032-5033, 5035-5036.
+# Reserved and not created here: 10.6.6.53, 10.6.6.55-.56 and host ports 5033, 5035-5036.
 # Unused buffer: 10.6.6.46-.49. Unused remainder: 10.6.6.57-.59 and ports 5037-5039.
   mind-core:
     profiles: ["ai"]
@@ -282,6 +284,44 @@ services:
       retries: 3
       start_period: 5s
 
+  marionette:
+    profiles: ["ai"]
+    container_name: marionette
+    build: ./agentic-ai-labs/marionette
+    restart: unless-stopped
+    depends_on:
+      mind-core:
+        condition: service_healthy
+    user: "10004:10004"
+    read_only: true
+    mem_limit: 128m
+    cpus: 0.50
+    pids_limit: 64
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
+    environment:
+      HOME: /tmp
+      MIND_CORE_URL: http://mind-core:5030
+      MARIONETTE_MIND_CORE_TIMEOUT_SECONDS: "2"
+      MARIONETTE_FETCH_TIMEOUT_SECONDS: "2"
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.52
+      websploit-isolated:
+        ipv4_address: 10.7.7.52
+    ports:
+      - "5032:5032"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5032/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
   echo-chamber:
     profiles: ["ai"]
     container_name: echo-chamber
@@ -326,9 +366,8 @@ networks:
       config:
         - subnet: 10.6.6.0/24
           gateway: 10.6.6.1
-  # Declared for a later agent/tool lab. Compose does not create a network
-  # until a service attaches, so this bridge appears when marionette joins.
-  # No service attaches in this change. internal: true means no egress.
+  # marionette is the only service attached. internal: true means a container
+  # on this network alone has no route to the public internet.
   websploit-isolated:
     driver: bridge
     internal: true
