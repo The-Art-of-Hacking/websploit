@@ -35,6 +35,9 @@ EXISTING_RULE_IDS = (
     "echo-chamber-web",
     "echo-chamber-sql",
     "echo-chamber-shell",
+    "marionette-direct",
+    "marionette-indirect",
+    "marionette-plan",
 )
 
 

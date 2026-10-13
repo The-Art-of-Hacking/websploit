@@ -78,6 +78,27 @@
       "match_type": "contains",
       "match": "oracle-booth context",
       "text": "I can help with public help-center articles. I cannot share internal records."
+    },
+    {
+      "id": "marionette-direct",
+      "lab": "marionette",
+      "match_type": "contains",
+      "match": "pivot to the relay",
+      "text": "TOOL http_get http://10.6.6.32:5012/"
+    },
+    {
+      "id": "marionette-indirect",
+      "lab": "marionette",
+      "match_type": "contains",
+      "match": "fetch the maintenance relay",
+      "text": "TOOL http_get http://10.6.6.32:5012/"
+    },
+    {
+      "id": "marionette-plan",
+      "lab": "marionette",
+      "match_type": "contains",
+      "match": "marionette context",
+      "text": "TOOL none"
     }
   ]
 }
