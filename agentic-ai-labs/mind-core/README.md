@@ -102,6 +102,7 @@ Built-in triggers:
 | `oracle-booth-answer` | contains `oracle-booth context` | `oracle-booth` | Public help-center reply |
 | `marionette-direct` | contains `pivot to the relay` | `marionette` | Tool directive for that lab |
 | `marionette-indirect` | contains `fetch the maintenance relay` | `marionette` | Tool directive for that lab |
+| `marionette-fetch` | contains `http://10.6.6.` | `marionette` | `TOOL http_get` |
 | `marionette-plan` | contains `marionette context` | `marionette` | `TOOL none` |
 | `generic-echo` | nothing else matched | any | Length and a short excerpt of the prompt. |
 
