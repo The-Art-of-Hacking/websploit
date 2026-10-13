@@ -56,6 +56,10 @@ jobs:
         run: python3 -m unittest test_token_famine
         working-directory: agentic-ai-labs/token-famine
 
+      - name: Model pin tests
+        run: python3 -m unittest test_model_pin
+        working-directory: agentic-ai-labs/mind-core
+
       - name: Compose config without a profile
         run: docker compose config -q
 
@@ -63,6 +67,10 @@ jobs:
       # fails on Compose v2 with "unknown flag: --profile".
       - name: Compose config with the ai profile
         run: docker compose --profile ai config -q
+
+      # Renders the model tier. It does not pull the image or the weight.
+      - name: Compose config with the ai and ai-model profiles
+        run: docker compose --profile ai --profile ai-model config -q
 
       - name: Golden-stack guard
         run: python3 .github/scripts/check_golden_stack.py
@@ -873,3 +881,35 @@ jobs:
       - name: Stop token-famine and mind-core
         if: always()
         run: docker compose --profile ai rm -sf token-famine mind-core
+
+  # Separate from the deterministic jobs. A cache miss skips the download
+  # instead of pulling the GGUF on every pull request.
+  local-gguf-weight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify a cached weight or skip the download
+        run: |
+          set -euo pipefail
+          weight="${RUNNER_TEMP}/gguf-cache/qwen2.5-0.5b-instruct-q4_k_m.gguf"
+          if [ ! -f "$weight" ]; then
+            echo "Weight is not cached on this runner."
+            echo "Skipping the download so the deterministic AI-track jobs do not pull the GGUF."
+            exit 0
+          fi
+          export WEIGHT="$weight"
+          python3 - << 'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          sys.path.insert(0, "agentic-ai-labs/mind-core")
+          from model_pin import shipped_pin, verify_file
+
+          pin = shipped_pin()
+          verify_file(Path(os.environ["WEIGHT"]), pin.size_bytes, pin.sha256)
+          print("cached weight matches the pin")
+          PY

@@ -25,6 +25,11 @@ the ``websploit`` address. Every other service is rejected if it joins
 
 ``--synthetic`` checks that attachment from the Compose file and from
 in-memory service maps. It does not run Docker.
+
+Profile ``ai-model`` adds ``model-fetch`` and ``local-gguf``. Those
+services stay out of the default stack and out of profile ``ai``.
+They are allowed only when profile ``ai`` is enabled as well, because
+they depend on ``mind-core``.
 """
 
 from __future__ import annotations
@@ -45,6 +50,15 @@ MARIONETTE_ENDPOINT = "marionette 10.6.6.52 5032:5032/tcp"
 TAINTED_WELL_ENDPOINT = "tainted-well 10.6.6.53 5033:5033/tcp"
 FALSE_PROPHET_ENDPOINT = "false-prophet 10.6.6.55 5035:5035/tcp"
 TOKEN_FAMINE_ENDPOINT = "token-famine 10.6.6.56 5036:5036/tcp"
+LLAMA_IMAGE = (
+    "ghcr.io/ggml-org/llama.cpp:server"
+    "@sha256:c789283572ba78c2699b8945a96e654c850f938a717883f2e6187a14adac698f"
+)
+LOCAL_GGUF_ADDRESS = "10.6.6.57"
+MODEL_FETCH_ADDRESS = "10.6.6.58"
+LOCAL_GGUF_MEMORY = 1536 * 1024 * 1024
+MODEL_FETCH_MEMORY = 256 * 1024 * 1024
+MODEL_SERVICES = ("local-gguf", "model-fetch")
 MARIONETTE_ISOLATED_IP = "10.7.7.52"
 ISOLATED_GATEWAY = "10.7.7.1"
 AI_PORT_MIN = 5030
@@ -56,6 +70,7 @@ def main() -> int:
         return synthetic_check()
     if len(sys.argv) != 1:
         raise SystemExit("usage: check_golden_stack.py [--synthetic]")
+    require_ai_model_source()
     default = compose_config(None)
     profiled = compose_config("ai")
     compare("services", service_names(default), read_lines(GOLDEN / "services.txt"))
@@ -65,27 +80,41 @@ def main() -> int:
     require_isolated_source()
     require_isolated(default)
     require_isolated(profiled)
+    assert_model_absent(profiled)
+    modeled = compose_config(["ai", "ai-model"])
+    require_isolated(modeled)
+    require_model_tier(default, profiled, modeled)
+    require_model_profile_needs_ai()
     print("golden stack ok")
     return 0
 
 
-def compose_config(profile: str | None) -> dict:
+def compose_config(profile: str | list[str] | None) -> dict:
     # --all-resources keeps websploit-isolated visible. Compose otherwise
     # drops networks that no enabled service references.
     # --profile is a global flag and must come before the subcommand.
-    completed = _run_compose(profile, all_resources=True)
+    profiles = _profile_list(profile)
+    completed = _run_compose(profiles, all_resources=True)
     if completed.returncode != 0 and _missing_all_resources(completed.stderr):
-        completed = _run_compose(profile, all_resources=False)
+        completed = _run_compose(profiles, all_resources=False)
     if completed.returncode != 0:
         sys.stderr.write(completed.stderr)
         raise SystemExit(f"docker compose config failed ({completed.returncode})")
     return json.loads(completed.stdout)
 
 
-def _run_compose(profile: str | None, all_resources: bool) -> subprocess.CompletedProcess[str]:
+def _profile_list(profile: str | list[str] | None) -> list[str]:
+    if profile is None:
+        return []
+    if isinstance(profile, str):
+        return [profile]
+    return list(profile)
+
+
+def _run_compose(profiles: list[str], all_resources: bool) -> subprocess.CompletedProcess[str]:
     command = ["docker", "compose"]
-    if profile:
-        command.extend(["--profile", profile])
+    for name in profiles:
+        command.extend(["--profile", name])
     if all_resources:
         command.append("--all-resources")
     command.extend(["config", "--format", "json"])
@@ -165,6 +194,8 @@ def assert_default_has_no_ai_track(config: dict) -> None:
         "tainted-well",
         "false-prophet",
         "token-famine",
+        "local-gguf",
+        "model-fetch",
     ):
         if name in services:
             raise SystemExit(f"{name} is part of the default stack; it must stay behind the ai profile")
@@ -301,6 +332,160 @@ def require_ai_additions(default: dict, profiled: dict) -> None:
     assert_isolated_attachments(profiled.get("services") or {})
 
 
+def assert_model_absent(config: dict) -> None:
+    services = config.get("services") or {}
+    present = [name for name in MODEL_SERVICES if name in services]
+    if present:
+        raise SystemExit(f"{present} must stay behind profile ai-model")
+
+
+def require_model_tier(default: dict, profiled: dict, modeled: dict) -> None:
+    """Allow the GGUF services only in the combined ai,ai-model config."""
+
+    profiled_names = set(service_names(profiled))
+    modeled_names = set(service_names(modeled))
+    if not profiled_names <= modeled_names:
+        missing = sorted(profiled_names - modeled_names)
+        raise SystemExit(f"profile ai,ai-model dropped services: {missing}")
+    added = sorted(modeled_names - profiled_names)
+    if added != sorted(MODEL_SERVICES):
+        raise SystemExit(f"profile ai-model added {added}, expected {list(MODEL_SERVICES)}")
+    compare(
+        "ai endpoints with ai-model",
+        endpoints(modeled, profiled_names),
+        endpoints(profiled),
+        "profile ai-model changed an ai-profile service name, IP, or host port",
+    )
+    compare(
+        "default endpoints with ai and ai-model",
+        endpoints(modeled, set(service_names(default))),
+        endpoints(default),
+        "profile ai-model changed a default service name, IP, or host port",
+    )
+    assert_isolated_attachments(modeled.get("services") or {})
+    services = modeled["services"]
+    seen_addresses: dict[str, str] = {}
+    for name in sorted(services):
+        service = services[name]
+        if not isinstance(service, dict):
+            continue
+        networks = service.get("networks") or {}
+        if not isinstance(networks, dict) or "websploit" not in networks:
+            continue
+        address = websploit_ipv4(name, service)
+        owner = seen_addresses.get(address)
+        if owner is not None:
+            raise SystemExit(f"{name} reuses websploit address {address} already used by {owner}")
+        seen_addresses[address] = name
+    _require_model_service(
+        services["local-gguf"],
+        "local-gguf",
+        LOCAL_GGUF_ADDRESS,
+        LOCAL_GGUF_MEMORY,
+        1.5,
+    )
+    fetch = services["model-fetch"]
+    _require_model_service(fetch, "model-fetch", MODEL_FETCH_ADDRESS, MODEL_FETCH_MEMORY, 0.5)
+    llama = services["local-gguf"]
+    if llama.get("image") != LLAMA_IMAGE:
+        raise SystemExit(f"local-gguf image is {llama.get('image')}, expected the pinned digest")
+    health = llama.get("healthcheck") or {}
+    rendered = health.get("test")
+    text = " ".join(rendered) if isinstance(rendered, list) else str(rendered)
+    if "8080/health" not in text:
+        raise SystemExit("local-gguf healthcheck must call /health on port 8080")
+    require_dependency(llama, "local-gguf", "mind-core", "service_healthy")
+    require_dependency(llama, "local-gguf", "model-fetch", "service_completed_successfully")
+    require_dependency(fetch, "model-fetch", "mind-core", "service_healthy")
+    build = fetch.get("build")
+    dockerfile = build.get("dockerfile") if isinstance(build, dict) else ""
+    if dockerfile != "fetch.Dockerfile":
+        raise SystemExit(f"model-fetch dockerfile is {dockerfile!r}")
+
+
+def _require_model_service(service: dict, name: str, address: str, memory: int, cpus: float) -> None:
+    if _profiles_from_source(name) != ["ai-model"]:
+        raise SystemExit(f"{name} profile is {_profiles_from_source(name)}, expected ['ai-model']")
+    _require_websploit_only(service, name)
+    actual = websploit_ipv4(name, service)
+    if actual != address:
+        raise SystemExit(f"{name} websploit address is {actual}, expected {address}")
+    if service.get("ports"):
+        raise SystemExit(f"{name} must not publish a host port")
+    limit = memory_limit_bytes(service)
+    if limit != memory:
+        raise SystemExit(f"{name} mem_limit is {limit}, expected {memory}")
+    cpu = cpu_limit(service)
+    if cpu is None or abs(cpu - cpus) > 0.001:
+        raise SystemExit(f"{name} cpus is {cpu}, expected {cpus}")
+
+
+def require_dependency(service: dict, name: str, dependency: str, condition: str) -> None:
+    depends = service.get("depends_on") or {}
+    spec = depends.get(dependency) if isinstance(depends, dict) else None
+    actual = spec.get("condition") if isinstance(spec, dict) else None
+    if actual != condition:
+        raise SystemExit(f"{name} must depend on {dependency} with condition {condition}")
+
+
+def require_model_profile_needs_ai() -> None:
+    """``--profile ai-model`` alone must not render the model tier."""
+
+    completed = _run_compose(["ai-model"], all_resources=True)
+    if completed.returncode != 0 and _missing_all_resources(completed.stderr):
+        completed = _run_compose(["ai-model"], all_resources=False)
+    if completed.returncode == 0:
+        raise SystemExit("profile ai-model rendered without profile ai")
+    if "mind-core" not in completed.stderr:
+        sys.stderr.write(completed.stderr)
+        raise SystemExit("profile ai-model failed without requiring mind-core")
+
+
+def require_ai_model_source() -> None:
+    """Check the model tier from the Compose file. Docker is not required."""
+
+    text = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    if LLAMA_IMAGE not in text:
+        raise SystemExit("local-gguf image is not digest-pinned")
+    if f"ipv4_address: {LOCAL_GGUF_ADDRESS}" not in text:
+        raise SystemExit("local-gguf address missing")
+    if f"ipv4_address: {MODEL_FETCH_ADDRESS}" not in text:
+        raise SystemExit("model-fetch address missing")
+    if text.count('profiles: ["ai-model"]') != 2:
+        raise SystemExit("profile ai-model must be set only on local-gguf and model-fetch")
+    if "MIND_CORE_EXTERNAL_API_KEY" in text:
+        raise SystemExit("compose file must not reference an external API key")
+    if "qwen2.5-0.5b-instruct-q4_k_m.gguf" not in text:
+        raise SystemExit("pinned GGUF filename missing from compose")
+    if "gguf-cache:" not in text:
+        raise SystemExit("gguf cache volume missing")
+    for name in MODEL_SERVICES:
+        block = _service_block(name)
+        if "websploit-isolated" in block or "\n    ports:" in block:
+            raise SystemExit(f"{name} must stay on websploit and must not publish a host port")
+    mind = _service_block("mind-core")
+    if 'profiles: ["ai"]' not in mind or "ai-model" in mind:
+        raise SystemExit("mind-core must stay on profile ai only")
+    if "${MIND_CORE_BACKEND:-auto}" not in mind or "http://local-gguf:8080" not in mind:
+        raise SystemExit("mind-core must select the local server only when it is healthy")
+
+
+def _service_block(name: str) -> str:
+    text = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    lines = text.splitlines()
+    start = next((index for index, line in enumerate(lines) if line == f"  {name}:"), None)
+    if start is None:
+        raise SystemExit(f"{name} is not declared in docker-compose.yml")
+    block = [lines[start]]
+    for line in lines[start + 1 :]:
+        if line.startswith("  ") and not line.startswith("   ") and not line.startswith("  #"):
+            break
+        if line and not line.startswith((" ", "#")):
+            break
+        block.append(line)
+    return "\n".join(block)
+
+
 def require_marionette_networks(service: dict) -> None:
     """marionette joins both bridges. The isolated address is not the gateway."""
 
@@ -349,6 +534,7 @@ def synthetic_check() -> int:
     """Validate the isolated attachment without Docker."""
 
     require_isolated_source()
+    require_ai_model_source()
     text = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     attachments = text.count("\n      websploit-isolated:\n")
     if attachments != 1:
@@ -429,6 +615,22 @@ def synthetic_check() -> int:
             raise
     else:
         raise SystemExit("token-famine isolated attachment was accepted")
+    bad_model = {
+        "marionette": good["marionette"],
+        "local-gguf": {
+            "networks": {
+                "websploit": {"ipv4_address": LOCAL_GGUF_ADDRESS},
+                "websploit-isolated": {"ipv4_address": "10.7.7.57"},
+            }
+        },
+    }
+    try:
+        assert_isolated_attachments(bad_model)
+    except SystemExit as exc:
+        if "local-gguf" not in str(exc):
+            raise
+    else:
+        raise SystemExit("local-gguf isolated attachment was accepted")
     print("synthetic golden stack ok")
     return 0
 

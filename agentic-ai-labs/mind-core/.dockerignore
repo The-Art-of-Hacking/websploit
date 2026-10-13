@@ -1,5 +1,6 @@
 README.md
 test_contract.py
+test_model_pin.py
 **/__pycache__
 **/*.pyc
 **/.pytest_cache

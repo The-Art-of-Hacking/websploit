@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import io
 import json
+import os
+import socket
 import sys
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from mindcore.engine import (
@@ -273,6 +277,181 @@ class ContractTests(unittest.TestCase):
             text = path.read_text(encoding="utf-8").lower()
             for token in banned:
                 self.assertNotIn(token, text, f"{path.name} contains {token}")
+
+    def test_provider_credential_names_are_absent_from_source(self) -> None:
+        paths = [
+            ROOT / "app.py",
+            ROOT / "model_pin.py",
+            ROOT / "fetch_model.py",
+            *sorted((ROOT / "mindcore").glob("*.py")),
+        ]
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("MIND_CORE_EXTERNAL_API_KEY", text, path.name)
+            self.assertNotIn("MIND_CORE_EXTERNAL_BASE_URL", text, path.name)
+
+    def test_auto_uses_local_server_when_it_is_healthy(self) -> None:
+        secret = "prompt-not-for-logs-96"
+        os.environ["MIND_CORE_EXTERNAL_API_KEY"] = "sentinel-not-a-real-key"
+        hits = {"health": 0, "completion": 0, "authorization": "", "body": b""}
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, fmt: str, *args: object) -> None:
+                return
+
+            def do_GET(self) -> None:  # noqa: N802
+                hits["health"] += 1
+                _write_json(self, 200, b'{"status":"ok"}')
+
+            def do_POST(self) -> None:  # noqa: N802
+                length = int(self.headers.get("Content-Length", "0"))
+                hits["body"] = self.rfile.read(length)
+                hits["authorization"] = self.headers.get("Authorization", "")
+                hits["completion"] += 1
+                _write_json(self, 200, b'{"content":"local model reply"}')
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+        thread.start()
+        host, port = server.server_address
+        engine = build_engine(
+            RULES,
+            requested_backend="auto",
+            timeout_seconds=1,
+            local_base_url=f"http://{host}:{port}",
+            probe_interval=0.05,
+        )
+        buffer = io.StringIO()
+        original = sys.stdout
+        sys.stdout = buffer
+        try:
+            deadline = time.monotonic() + 2
+            while time.monotonic() < deadline and engine.requested_backend != "local":
+                time.sleep(0.02)
+            self.assertEqual(engine.requested_backend, "local")
+            result = engine.complete(CompletionRequest(f"mind-core ping {secret}", "mind-core", {}))
+        finally:
+            sys.stdout = original
+            os.environ.pop("MIND_CORE_EXTERNAL_API_KEY", None)
+            engine.close()
+            server.shutdown()
+            server.server_close()
+        self.assertGreaterEqual(hits["health"], 1)
+        self.assertEqual(hits["completion"], 1)
+        self.assertEqual(hits["authorization"], "")
+        self.assertNotIn(b"sentinel-not-a-real-key", hits["body"])
+        parsed = json.loads(hits["body"].decode("utf-8"))
+        self.assertIs(parsed["stream"], False)
+        self.assertIs(parsed["cache_prompt"], False)
+        self.assertIn(secret, parsed["prompt"])
+        self.assertEqual(result.backend, "local")
+        self.assertIs(result.fallback, False)
+        self.assertEqual(result.rule_id, "local-completion")
+        self.assertEqual(result.text, "local model reply")
+        self.assertEqual(result.requested_backend, "local")
+        logged = buffer.getvalue()
+        self.assertNotIn(secret, logged)
+        self.assertNotIn("sentinel-not-a-real-key", logged)
+
+    def test_auto_stays_deterministic_when_the_server_is_down(self) -> None:
+        engine = build_engine(
+            RULES,
+            requested_backend="auto",
+            timeout_seconds=0.2,
+            local_base_url=_closed_url(),
+            probe_interval=0.05,
+        )
+        try:
+            time.sleep(0.15)
+            result = engine.complete(CompletionRequest("mind-core ping", None, {}))
+        finally:
+            engine.close()
+        self.assertEqual(engine.requested_backend, "deterministic")
+        self.assertEqual(result.backend, "deterministic")
+        self.assertIs(result.fallback, False)
+        self.assertEqual(result.rule_id, "mind-core-ping")
+
+    def test_explicit_local_falls_back_when_the_server_is_down(self) -> None:
+        engine = build_engine(
+            RULES,
+            requested_backend="local",
+            timeout_seconds=0.2,
+            local_base_url=_closed_url(),
+        )
+        try:
+            result = engine.complete(CompletionRequest("mind-core ping", None, {}))
+        finally:
+            engine.close()
+        self.assertEqual(result.backend, "deterministic")
+        self.assertIs(result.fallback, True)
+        self.assertEqual(result.requested_backend, "local")
+        self.assertEqual(result.rule_id, "mind-core-ping")
+
+    def test_deterministic_does_not_call_a_live_local_server(self) -> None:
+        hits = {"n": 0}
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, fmt: str, *args: object) -> None:
+                return
+
+            def do_GET(self) -> None:  # noqa: N802
+                hits["n"] += 1
+                _write_json(self, 200, b'{"status":"ok"}')
+
+            def do_POST(self) -> None:  # noqa: N802
+                hits["n"] += 1
+                length = int(self.headers.get("Content-Length", "0"))
+                self.rfile.read(length)
+                _write_json(self, 200, b'{"content":"should-not-be-used"}')
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+        thread.start()
+        host, port = server.server_address
+        engine = build_engine(
+            RULES,
+            requested_backend="deterministic",
+            timeout_seconds=0.5,
+            local_base_url=f"http://{host}:{port}",
+        )
+        try:
+            result = engine.complete(CompletionRequest("mind-core ping", None, {}))
+            time.sleep(0.1)
+        finally:
+            engine.close()
+            server.shutdown()
+            server.server_close()
+        self.assertEqual(hits["n"], 0)
+        self.assertEqual(result.backend, "deterministic")
+        self.assertIs(result.fallback, False)
+        self.assertEqual(result.rule_id, "mind-core-ping")
+
+    def test_rejects_local_urls_that_are_not_plain_http(self) -> None:
+        for url in (
+            "https://local-gguf:8080",
+            "http://user:pass@local-gguf:8080",
+            "http://local-gguf:8080/health",
+            "http://local-gguf:8080?x=1",
+            "file:///tmp/model.gguf",
+        ):
+            with self.assertRaises(ValueError):
+                build_engine(RULES, requested_backend="auto", local_base_url=url)
+
+
+def _closed_url() -> str:
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    return f"http://127.0.0.1:{port}"
+
+
+def _write_json(handler: BaseHTTPRequestHandler, status: int, body: bytes) -> None:
+    handler.send_response(status)
+    handler.send_header("Content-Type", "application/json")
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
 
 
 def _exchange(base, method, path, payload=None, headers=None, raw=None):

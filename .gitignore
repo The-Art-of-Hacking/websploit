@@ -16,3 +16,7 @@ backups
 
 # Cursor
 .cursor/
+
+# Local GGUF weights. The ai-model profile downloads these into a volume.
+*.gguf
+*.gguf.partial

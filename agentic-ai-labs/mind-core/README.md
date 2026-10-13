@@ -8,9 +8,9 @@ Shared completion service for the WebSploit Labs AI track, by Omar Santos (@sant
 
 ## Objective
 
-Give later labs one stable HTTP API that returns the same text for the same trigger, with no API key and no model weights. A deterministic rules file is the default backend. The backend boundary is pluggable so a later issue can add a local GGUF runtime or an external provider without changing lab callers. If a future backend is missing, slow, or failing, this process returns the rules-engine text instead of hanging.
+Give later labs one stable HTTP API that returns the same text for the same trigger, with no API key. A deterministic rules file is the default backend and does not use model weights. An optional CPU GGUF tier can be turned on with a second Compose profile. If that model is missing, slow, or failing, this process returns the rules-engine text instead of hanging. An external provider is not wired up.
 
-The image is built for `linux/amd64` and `linux/arm64`. It does not use a GPU. After the image is built, the process does not open outbound connections.
+The image is built for `linux/amd64` and `linux/arm64`. It does not use a GPU. The rules engine does not open outbound connections. With the local tier enabled, this process calls `local-gguf` on the `websploit` bridge only.
 
 ## Run
 
@@ -35,7 +35,40 @@ Stop only this container:
 docker compose --profile ai rm -sf mind-core
 ```
 
-`MIND_CORE_BACKEND` defaults to `deterministic`. Leave it unset unless you are testing fallback behavior.
+The image default for `MIND_CORE_BACKEND` is `deterministic`. Compose sets it to `auto` unless you override it. `auto` keeps the rules engine until `local-gguf` answers `/health`, then completions come from that server. `--profile ai` does not start `local-gguf`, so the API stays `deterministic` with `"fallback": false`. Set `MIND_CORE_BACKEND=deterministic` to ignore the model even when the container is up.
+
+## Local model
+
+Opt in with both profiles. The weight is not in git. `model-fetch` downloads it into the `gguf-cache` volume, checks SHA-256, and exits. It starts as root only long enough to chown that volume, then drops to uid 10001 before any download. A file that already matches is reused and is not downloaded again. A truncated or tampered file fails the check and is deleted, so `local-gguf` does not load it.
+
+```bash
+docker compose --profile ai --profile ai-model up -d --build mind-core model-fetch local-gguf
+```
+
+The same selection is `COMPOSE_PROFILES=ai,ai-model`. `--profile ai-model` alone is not a valid project: the model services depend on `mind-core`, which stays behind profile `ai`. `--profile ai` without `ai-model` does not start `model-fetch` or `local-gguf` and does not download the weight.
+
+`local-gguf` is `ghcr.io/ggml-org/llama.cpp:server` pinned by digest, on `10.6.6.57`, with no host port. `mind-core` calls `http://local-gguf:8080` on the `websploit` bridge. `model-fetch` is on `10.6.6.58`, also with no host port. Neither container joins `websploit-isolated`. The server is CPU-only (`--n-gpu-layers 0`) and the image index covers `linux/amd64` and `linux/arm64`.
+
+| Pin | Value |
+| --- | --- |
+| Model id | `Qwen/Qwen2.5-0.5B-Instruct-GGUF` |
+| File | `qwen2.5-0.5b-instruct-q4_k_m.gguf` |
+| Parameters / quant | 0.5B, Q4_K_M |
+| License | Apache-2.0 (Copyright 2024 Alibaba Cloud) |
+| Size | 491,400,032 bytes (published weight; about 469 MiB) |
+| Checksum | SHA-256 `74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db` |
+| URL | `https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf` |
+| Runtime image | `ghcr.io/ggml-org/llama.cpp:server@sha256:c789283572ba78c2699b8945a96e654c850f938a717883f2e6187a14adac698f` |
+
+Compose caps `local-gguf` at 1536 MiB and 1.5 CPUs so an 8 GB host still has room for the rest of the stack. Container RSS was not measured here: Docker was not installed on the machine that prepared this change. Do not treat 1536 MiB as a measured footprint. Re-measure with `docker stats local-gguf` on a host that has Docker. `model-fetch` is capped at 256 MiB and 0.50 CPU.
+
+Disk is the published weight, 491,400,032 bytes, on the `gguf-cache` volume, plus the llama.cpp image and the small fetch image. Those image sizes were not measured here.
+
+After the volume holds a file that matches the SHA-256 pin, later starts hash it locally and do not contact Hugging Face. The runtime image still has to be present on the machine. The first run needs the network for the image pull and the weight. A failed checksum removes the bad file and leaves `local-gguf` stopped; `mind-core` keeps serving the rules engine.
+
+Direct callers of `POST /v1/complete` wait up to `MIND_CORE_BACKEND_TIMEOUT_SECONDS` (Compose sets 15, process default 2, allowed range 0.05–30) and then receive the rules-engine text with `"fallback": true`. Labs keep their own 2 second client timeout, so a slow model does not hold a lab request open.
+
+`MIND_CORE_EXTERNAL_API_KEY` and `MIND_CORE_EXTERNAL_BASE_URL` are not read. Do not commit a provider key.
 
 ## HTTP contract
 
@@ -49,7 +82,7 @@ Base URL from another container on the `websploit` network: `http://mind-core:50
 {"status":"ok","ready":true,"backend":"deterministic","requested_backend":"deterministic"}
 ```
 
-`backend` is the backend this process is configured to call: the registered backend named by `MIND_CORE_BACKEND`, or `deterministic` when that name is not registered. `requested_backend` is the value of `MIND_CORE_BACKEND`.
+`backend` is the backend this process is configured to call. `requested_backend` is that same effective name. `auto` is a selector, not a backend name: until `local-gguf` is healthy the API reports `deterministic`. After it is healthy both fields become `local`. An unregistered name still falls back to the rules engine.
 
 ### `POST /v1/complete`
 
@@ -66,10 +99,10 @@ Base URL from another container on the `websploit` network: `http://mind-core:50
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `text` | string | Completion text. |
-| `backend` | string | Backend that produced `text`. On the default path and on fallback this is `deterministic`. |
+| `backend` | string | Backend that produced `text`. On the default path and on fallback this is `deterministic`. A local completion uses `local`. |
 | `fallback` | boolean | `false` when the requested backend produced `text`, including the generic echo rule. `true` when the requested backend was missing, slow, or failed and the rules engine answered instead. |
-| `rule_id` | string | Id of the rule that matched, or `generic-echo`. |
-| `requested_backend` | string | The `MIND_CORE_BACKEND` value for this process. |
+| `rule_id` | string | Id of the rule that matched, `generic-echo`, or `local-completion` when the model answered. |
+| `requested_backend` | string | Effective backend name for this process. `auto` is reported as `deterministic` until the local server is healthy, then `local`. |
 
 Example:
 
@@ -79,7 +112,7 @@ Example:
 
 Error body: `{"error":"<code>","message":"<short reason>"}`. Prompts are not copied into errors. Status codes: `400` invalid JSON or fields, `404` unknown path, `405` wrong method, `411` missing `Content-Length`, `413` oversized body, `415` wrong content type, `429` too many in-flight requests, `500` unexpected failure.
 
-The deterministic path does not wait on a timer. `MIND_CORE_BACKEND_TIMEOUT_SECONDS` (default `2`, allowed range `0.05`–`30`) applies only to a future non-deterministic backend. When that deadline is exceeded, the response is the rules-engine result with `fallback` set to `true`.
+The deterministic path does not wait on a timer. `MIND_CORE_BACKEND_TIMEOUT_SECONDS` (process default `2`, Compose sets `15` for the model tier, allowed range `0.05`–`30`) applies to the local backend. When that deadline is exceeded, the response is the rules-engine result with `fallback` set to `true`.
 
 ## Rules
 
@@ -138,17 +171,9 @@ Later labs should add a rule here instead of embedding a model. Example shape fo
 
 Do not put live secrets in `rules.json`. Training-lab flag strings are added with the lab that captures them. They are not credentials, and this service does not treat them as code.
 
-## Adding a backend later
+## External provider
 
-Implement `CompletionBackend` in `mindcore/engine.py` (`name` plus `complete(request) -> BackendResult`) and register it from `build_engine`. Do not make lab apps import this package; they should keep calling `POST /v1/complete`.
-
-Reserved environment variables for those follow-ups, all unset and unread in this version:
-
-| Variable | Later use |
-| --- | --- |
-| `MIND_CORE_LOCAL_MODEL_PATH` | Path to a local GGUF file inside a future image. |
-| `MIND_CORE_EXTERNAL_BASE_URL` | Provider base URL. |
-| `MIND_CORE_EXTERNAL_API_KEY` | Provider credential. Environment only. Never commit it. |
+Not implemented. `MIND_CORE_EXTERNAL_BASE_URL` and `MIND_CORE_EXTERNAL_API_KEY` are unread. The key must stay in the environment of a future change and must not be committed. `MIND_CORE_LOCAL_MODEL_PATH` is also unread: the weight lives on the `gguf-cache` volume, not in this image.
 
 An unregistered or failing backend must not be wired to the network in a way that blocks the request. The dispatcher already falls back.
 
@@ -163,16 +188,19 @@ Measured while preparing this change:
 | Base image | `python:3.13-slim` index `sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f` (published 2026-10-06). linux/amd64 and linux/arm64. |
 | Compressed base layers | 43,060,729 bytes (amd64) and 43,322,292 bytes (arm64), from the registry. No extra packages are installed. |
 | Process RSS | 24,690,688 bytes (about 24 MiB) for CPython 3.12.11 on Darwin arm64 after `GET /health` and one `POST /v1/complete`. This is the interpreter on the development host, not a container sample. |
-| Container image size | Not measured here. Docker was not installed on the machine that prepared the change. The hard memory cap inside Compose is 128 MiB. |
+| Container image size | Not measured here. Docker was not installed on the machine that prepared the change. The hard memory cap inside Compose is 128 MiB for `mind-core`. |
+| Local weight | 491,400,032 bytes, SHA-256 pinned, Apache-2.0. Not measured inside a container. |
+| `local-gguf` cap | 1536 MiB, 1.5 CPUs. This is a limit, not a measured RSS. |
+| llama.cpp image | Index digest `sha256:c789283572ba78c2699b8945a96e654c850f938a717883f2e6187a14adac698f` (`linux/amd64` and `linux/arm64`). Layer size was not measured here. |
 
-The target from the track design is a small image (around the slim base, near 150 MB uncompressed) and under 128 MB of RAM. The RSS sample is well under that cap. Re-measure with `docker image inspect` and `docker stats` when Docker is available.
+The target from the track design is a small `mind-core` image (around the slim base, near 150 MB uncompressed) and under 128 MB of RAM for that service. The RSS sample is well under that cap. The model tier's cap is 1536 MiB so the published 469 MiB weight has room to run on an 8 GB host. Re-measure with `docker image inspect` and `docker stats` when Docker is available.
 
 ## Security properties
 
 This service is infrastructure, so the usual lab weaknesses are out of scope.
 
-- No credentials are stored in the image, Compose file, or rules. The external API key variable above is not read.
-- No certificates are embedded. The listener is HTTP on the lab bridge because this environment is isolated and the track forbids shipping certificate material. Do not publish port 5030 on an untrusted network.
-- The process does not hash, encrypt, or sign anything, so it does not use MD5, SHA-1, DES, or other broken algorithms.
+- No credentials are stored in the image, Compose file, or rules. `MIND_CORE_EXTERNAL_API_KEY` is not read. The model URL and SHA-256 pin are a public weight, not a secret.
+- No certificates are embedded. The listener is HTTP on the lab bridge because this environment is isolated and the track forbids shipping certificate material. `local-gguf` is also HTTP, on the bridge only, with no host port. Do not publish port 5030 on an untrusted network.
+- The rules engine does not hash, encrypt, or sign. The weight check is SHA-256 of the published file. MD5 and SHA-1 are not used. The checksum is an integrity check, not a password hash.
 - The container runs as uid/gid 10001, with a read-only root filesystem, all capabilities dropped, `no-new-privileges`, no Docker socket, and no privileged mode. The image removes `pip`. A tmpfs is mounted on `/tmp`.
 - Request bodies are size-capped, unknown JSON fields are rejected, and prompts are not written to logs.

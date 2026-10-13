@@ -1,4 +1,3 @@
 # mind-core has no third-party Python dependencies.
 # The interpreter pin is the digest on the base image in the Dockerfile.
-# When a later issue adds a local model runtime, hash-pin those packages
-# here and install them with: pip install --require-hashes -r requirements.txt
+# The optional GGUF runtime is the pinned llama.cpp image, not a pip package.

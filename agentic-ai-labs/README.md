@@ -31,19 +31,29 @@ docker compose --profile ai up -d --build mind-core false-prophet
 docker compose --profile ai up -d --build mind-core token-famine
 ```
 
-`docker compose --profile ai up -d --build` with no service names starts the classic stack and every service in the `ai` profile (`mind-core`, `oracle-booth`, `marionette`, `tainted-well`, `echo-chamber`, `false-prophet`, and `token-famine`). Naming the services is how you avoid booting every classic lab.
+`docker compose --profile ai up -d --build` with no service names starts the classic stack and every service in the `ai` profile (`mind-core`, `oracle-booth`, `marionette`, `tainted-well`, `echo-chamber`, `false-prophet`, and `token-famine`). Naming the services is how you avoid booting every classic lab. That command does not download a model weight.
 
-`docker compose up` without `--profile ai` does not create or start `mind-core`, `oracle-booth`, `marionette`, `tainted-well`, `echo-chamber`, `false-prophet`, or `token-famine`.
+The optional local model is a second profile, `ai-model`, and it is valid only together with `ai`:
+
+```bash
+docker compose --profile ai --profile ai-model up -d --build mind-core model-fetch local-gguf
+```
+
+`COMPOSE_PROFILES=ai,ai-model` is the same selection. `--profile ai-model` alone does not render, because `model-fetch` and `local-gguf` depend on `mind-core`.
+
+`docker compose up` without `--profile ai` does not create or start `mind-core`, `oracle-booth`, `marionette`, `tainted-well`, `echo-chamber`, `false-prophet`, `token-famine`, `model-fetch`, or `local-gguf`.
 
 ## Backend tiers
 
 | Tier | Status | What it does |
 | --- | --- | --- |
-| Deterministic rules | This track, default | Canned and templated replies from `mind-core/rules.json`. No API key and no model weights. |
-| Local GGUF model | Follow-up issue | A later change may add a local runtime behind the same HTTP API. Not in this image. |
-| External provider | Follow-up issue | A later change may call a provider with environment variables only, unset by default. Not implemented, and no key is read today. |
+| Deterministic rules | Default | Canned and templated replies from `mind-core/rules.json`. No API key and no model weights. `--profile ai` uses this tier. |
+| Local GGUF model | Opt-in, profile `ai-model` | One shared CPU llama.cpp server. `mind-core` uses it when the server is healthy and falls back to the rules engine when it is slow or down. |
+| External provider | Not implemented | No key is read. Do not commit one. |
 
-`MIND_CORE_BACKEND` selects the tier. The only registered name today is `deterministic`. Any other syntactically valid name returns the rules-engine text with `"fallback": true` instead of hanging.
+`MIND_CORE_BACKEND` selects the tier. Compose defaults it to `auto`, which reports `deterministic` until `local-gguf` is healthy. The image default, with that variable unset, is `deterministic`. Any other syntactically valid name that is not registered returns the rules-engine text with `"fallback": true` instead of hanging.
+
+The pinned weight is `Qwen/Qwen2.5-0.5B-Instruct-GGUF`, file `qwen2.5-0.5b-instruct-q4_k_m.gguf`, 491,400,032 bytes, SHA-256 `74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db`, Apache-2.0. It is not committed. After the `gguf-cache` volume matches that checksum, later starts do not download it again. Container RSS for the model was not measured; Compose caps `local-gguf` at 1536 MiB and 1.5 CPUs. Details are in [mind-core/README.md](mind-core/README.md).
 
 ## Reserved addresses
 
@@ -58,7 +68,9 @@ The AI track uses `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039` on th
 | echo-chamber | 10.6.6.54 | 5034 | Deployed with profile `ai` |
 | false-prophet | 10.6.6.55 | 5035 | Deployed with profile `ai`. WebSploit only. |
 | token-famine | 10.6.6.56 | 5036 | Deployed with profile `ai`. WebSploit only. The flood is capped on purpose. |
-| (unassigned) | 10.6.6.57–10.6.6.59 | 5037–5039 | Unused |
+| local-gguf | 10.6.6.57 | none | CPU llama.cpp server. Profiles `ai` and `ai-model` together. WebSploit only. No host port. |
+| model-fetch | 10.6.6.58 | none | Downloads and checksums the pinned GGUF. Same profiles. WebSploit only. No host port. |
+| (unassigned) | 10.6.6.59 | 5037–5039 | Unused |
 
 ## Directory map
 
@@ -85,7 +97,7 @@ Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./a
 | Internal | yes (no internet egress) |
 | Attached containers | `marionette` at 10.7.7.52 |
 
-`containers.sh` already prints this subnet. Compose creates this bridge when `marionette` attaches. `echo-chamber`, `oracle-booth`, `tainted-well`, `false-prophet`, and `token-famine` stay on `websploit` and do not join this network. The golden-stack check requires this declaration (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`), requires `marionette` on both networks, and rejects every other service that joins `websploit-isolated`. marionette stays on `websploit` as well, because mind-core is not on `websploit-isolated`. A container attached only to this network has no route to the public internet.
+`containers.sh` already prints this subnet. Compose creates this bridge when `marionette` attaches. `echo-chamber`, `oracle-booth`, `tainted-well`, `false-prophet`, `token-famine`, `local-gguf`, and `model-fetch` stay on `websploit` and do not join this network. The golden-stack check requires this declaration (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`), requires `marionette` on both networks, and rejects every other service that joins `websploit-isolated`. marionette stays on `websploit` as well, because mind-core is not on `websploit-isolated`. A container attached only to this network has no route to the public internet. Profile `ai-model` is allowed only together with profile `ai`.
 
 ## Calling mind-core
 

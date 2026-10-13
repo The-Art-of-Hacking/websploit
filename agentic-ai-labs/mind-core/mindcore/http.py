@@ -52,6 +52,7 @@ class Settings:
         timeout_seconds: float,
         max_concurrency: int,
         rules_path: Path,
+        local_base_url: str,
     ) -> None:
         self.bind = bind
         self.port = port
@@ -59,6 +60,7 @@ class Settings:
         self.timeout_seconds = timeout_seconds
         self.max_concurrency = max_concurrency
         self.rules_path = rules_path
+        self.local_base_url = local_base_url
 
 
 def load_settings() -> Settings:
@@ -72,7 +74,8 @@ def load_settings() -> Settings:
         raise ValueError("MIND_CORE_BIND must be 0.0.0.0 or 127.0.0.1")
     concurrency = _env_int("MIND_CORE_MAX_CONCURRENCY", 8, 1, 32)
     rules_path = Path(os.environ.get("MIND_CORE_RULES_PATH", str(default_rules_path())))
-    return Settings(bind, port, backend, timeout, concurrency, rules_path)
+    local_base_url = os.environ.get("MIND_CORE_LOCAL_BASE_URL", "").strip()
+    return Settings(bind, port, backend, timeout, concurrency, rules_path, local_base_url)
 
 
 class BoundedHTTPServer(ThreadingHTTPServer):
@@ -294,7 +297,12 @@ def create_server(engine: Engine, bind: str, port: int, max_concurrency: int) ->
 def main() -> None:
     try:
         settings = load_settings()
-        engine = build_engine(settings.rules_path, settings.requested_backend, settings.timeout_seconds)
+        engine = build_engine(
+            settings.rules_path,
+            settings.requested_backend,
+            settings.timeout_seconds,
+            local_base_url=settings.local_base_url,
+        )
     except (OSError, ValueError) as exc:
         sys.stderr.write(f"mind-core configuration error: {exc}\n")
         raise SystemExit(2) from exc
@@ -313,6 +321,7 @@ def main() -> None:
     except KeyboardInterrupt:
         pass
     finally:
+        engine.close()
         server.server_close()
 
 
