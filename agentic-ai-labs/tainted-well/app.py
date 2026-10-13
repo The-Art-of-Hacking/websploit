@@ -119,6 +119,13 @@ class Index:
             if len(ingested) > MAX_INGESTED:
                 self.chunks.remove(ingested[0])
 
+    def inventory(self) -> list[dict[str, object]]:
+        """List chunk ids and tenants without bodies, so no flag text leaks."""
+
+        with self.lock:
+            chunks = list(self.chunks)
+        return [{"id": chunk.id, "tenant": chunk.tenant, "private": chunk.private} for chunk in chunks]
+
     def search(self, query: str, limit: int = 3) -> list[tuple[Chunk, int]]:
         """Rank every chunk by token overlap, across all tenants.
 
@@ -300,27 +307,187 @@ def _describe(model: object) -> str:
     return f"{type(model).__name__}"
 
 
-def index_page() -> str:
-    default = html.escape("quarterly revenue", quote=True)
-    return f"""<!DOCTYPE html>
+INDEX_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>tainted-well</title>
+<title>Well Vector Console</title>
+<style>
+:root{--bg:#0f1117;--panel:#161925;--panel2:#1d2130;--line:#2a2f3e;--text:#e7e9ef;--muted:#9aa3b5;--accent:#7c5cff;--teal:#00c2a8;--flag:#113b2c;--flagline:#00c2a8;--warn:#3a2c12;--warnline:#c79234;--priv:#3a1220;--privline:#c76a6a}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5}
+.app{display:flex;height:100vh}
+.sidebar{width:272px;flex:0 0 272px;background:var(--panel);border-right:1px solid var(--line);padding:18px 16px;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--teal));display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+.brand h1{font-size:16px;margin:0}
+.brand .sub{color:var(--muted);font-size:12px}
+.side-h{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:22px 0 8px}
+.pill{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.pill .dotg{width:8px;height:8px;border-radius:50%;background:var(--teal)}
+#inv{display:flex;flex-direction:column;gap:6px}
+.inv-row{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px;font-family:ui-monospace,monospace}
+.inv-row .t{color:var(--muted)}
+.tag{margin-left:auto;font-size:10px;border-radius:999px;padding:1px 7px;border:1px solid var(--line);color:var(--muted)}
+.tag.priv{background:var(--priv);border-color:var(--privline);color:#f0b4b4}
+.meta-ip{color:var(--muted);font-size:11px;margin-top:16px;font-family:ui-monospace,monospace}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+.topbar h2{margin:0;font-size:15px}
+.topbar .status{color:var(--muted);font-size:12px}
+.scroll{flex:1;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:18px}
+.warn{background:var(--warn);border:1px solid var(--warnline);color:#f0d6a6;border-radius:10px;padding:10px 14px;font-size:13px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.card h3{margin:0 0 4px;font-size:14px}
+.card p.hint{margin:0 0 12px;color:var(--muted);font-size:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+input,textarea,select{background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px 11px;font:inherit;font-size:14px}
+textarea{resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;width:100%}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+button{background:linear-gradient(135deg,var(--accent),var(--teal));border:none;color:#fff;border-radius:9px;padding:10px 18px;font-weight:600;cursor:pointer}
+.out{margin-top:12px;display:none;flex-direction:column;gap:10px}
+.out.show{display:flex}
+.answer{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 14px;white-space:pre-wrap;word-break:break-word}
+.chunk{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.chunk .ch-head{display:flex;align-items:center;gap:8px;font-family:ui-monospace,monospace;color:var(--accent);margin-bottom:5px}
+.chunk .body{color:var(--muted);white-space:pre-wrap;word-break:break-word}
+.flag{display:flex;align-items:center;gap:8px;background:var(--flag);border:1px solid var(--flagline);border-radius:10px;padding:9px 13px;font-family:ui-monospace,monospace;color:#9ffbe4;font-weight:600}
+.meta{color:var(--muted);font-size:11px;font-family:ui-monospace,monospace}
+.err{color:#ffb4b4}
+pre.warmup{margin:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--muted);white-space:pre-wrap;max-height:200px;overflow:auto;font-size:13px}
+@media(max-width:760px){.sidebar{display:none}}
+</style>
 </head>
 <body>
-<p class="warning">Isolated training lab. Chunks and model artifacts are treated as trusted data.</p>
-<h1>tainted-well</h1>
-<p>A document pipeline ingests chunks, retrieves by token overlap across tenants, and loads a pickled embedding model.</p>
-<form method="post" action="/search">
-<label>Tenant <input name="tenant" value="acme" size="12"></label>
-<label>Query <input name="query" value="{default}" size="48"></label>
-<button type="submit">Search</button>
-</form>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">W</div>
+      <div><h1>Well</h1><div class="sub">Vector Index Console</div></div>
+    </div>
+    <div class="side-h">Pipeline</div>
+    <div class="pill"><span class="dotg"></span>bag-of-words retriever</div>
+    <div class="pill"><span class="dotg"></span>pickle model loader</div>
+    <div class="side-h">Index inventory</div>
+    <div id="inv"></div>
+    <div class="meta-ip">profile ai &middot; 10.6.6.53:5033</div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <h2>Well Vector Console</h2>
+      <div class="status">Multi-tenant retrieval pipeline &middot; deterministic backend</div>
+    </div>
+    <div class="scroll">
+      <div class="warn">Isolated training lab. Ingested chunks and model artifacts are treated as trusted data: there is no tenant filter on retrieval and no signature check on the model loader.</div>
+
+      <div class="card">
+        <h3>Retrieval</h3>
+        <p class="hint">Ask across the index. Retrieval ranks every tenant's chunks by token overlap, with no tenant boundary.</p>
+        <form id="search-form" method="post" action="/search">
+          <div class="row">
+            <label>Tenant<input id="s-tenant" name="tenant" value="acme" size="12"></label>
+            <label style="flex:1">Query<input id="s-query" name="query" value="quarterly revenue ledger" style="width:100%"></label>
+            <button type="submit">Search</button>
+          </div>
+        </form>
+        <div class="out" id="search-out"></div>
+      </div>
+
+      <div class="card">
+        <h3>Ingest a document</h3>
+        <p class="hint">Add a chunk to the shared index. Anything you ingest is retrieved with the same trust as seeded data.</p>
+        <form id="ingest-form">
+          <div class="row">
+            <label>Tenant<input id="i-tenant" value="acme" size="12"></label>
+          </div>
+          <label style="margin-top:10px">Document text<textarea id="i-text" rows="3" placeholder="Chunk body to embed and index..."></textarea></label>
+          <div class="row" style="margin-top:10px"><button type="submit">Ingest</button></div>
+          <div class="out" id="ingest-out"></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>Load embedding model</h3>
+        <p class="hint">Hot-swap the embedding model from a base64 artifact. The loader unpickles it with no allowlist, so the artifact runs at load time.</p>
+        <form id="model-form">
+          <label>Base64 artifact<textarea id="m-artifact" rows="3" placeholder="base64-encoded pickle..."></textarea></label>
+          <div class="row" style="margin-top:10px"><button type="submit">Load model</button></div>
+          <div class="out" id="model-out"></div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+const byId = (id) => document.getElementById(id);
+function el(tag, cls, text){const e=document.createElement(tag); if(cls)e.className=cls; if(text!=null)e.textContent=text; return e;}
+function show(node){node.classList.add('show');}
+async function postJSON(path, payload){
+  const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+  return {ok:r.ok, body: await r.json()};
+}
+function loadInventory(){
+  fetch('/chunks').then(r=>r.json()).then(d => {
+    const inv=byId('inv'); inv.textContent='';
+    (d.chunks||[]).forEach(c => {
+      const row=el('div','inv-row'); row.appendChild(el('span',null,c.id));
+      row.appendChild(el('span','t', c.tenant));
+      if(c.private){row.appendChild(el('span','tag priv','private'));}
+      inv.appendChild(row);
+    });
+  }).catch(()=>{});
+}
+function renderSearch(out, d){
+  out.textContent=''; show(out);
+  out.appendChild(el('div','answer', d.answer));
+  (d.chunks||[]).forEach(c => {
+    const ch=el('div','chunk');
+    const h=el('div','ch-head'); h.appendChild(el('span',null,'['+c.id+']'));
+    h.appendChild(el('span','meta', c.tenant));
+    if(c.private){h.appendChild(el('span','tag priv','private'));}
+    ch.appendChild(h); ch.appendChild(el('div','body', c.body)); out.appendChild(ch);
+  });
+  (d.flags||[]).forEach(f => {const fl=el('div','flag'); fl.appendChild(el('span',null,'FLAG')); fl.appendChild(el('span',null,f)); out.appendChild(fl);});
+  out.appendChild(el('div','meta','source: '+d.source+' · rule: '+d.rule_id+' · backend: '+d.backend+(d.fallback?' · fallback':'')));
+}
+byId('search-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const tenant=byId('s-tenant').value.trim(), query=byId('s-query').value.trim();
+  if(!tenant || !query) return;
+  const out=byId('search-out');
+  try{const r=await postJSON('/search',{tenant,query}); renderSearch(out, r.body);}
+  catch(err){out.textContent=''; show(out); out.appendChild(el('div','answer err','Search failed.'));}
+});
+byId('ingest-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const tenant=byId('i-tenant').value.trim(), text=byId('i-text').value.trim();
+  const out=byId('ingest-out'); if(!tenant || !text) return;
+  const r=await postJSON('/ingest',{tenant,text}); out.textContent=''; show(out);
+  out.appendChild(el('div','answer', r.ok ? ('Ingested as '+r.body.id+'. It is now in the shared index.') : ('Ingest failed: '+(r.body.message||''))));
+  if(r.ok){byId('i-text').value=''; loadInventory();}
+});
+byId('model-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const artifact=byId('m-artifact').value.trim();
+  const out=byId('model-out'); if(!artifact) return;
+  const r=await postJSON('/model/load',{artifact}); out.textContent=''; show(out);
+  if(!r.ok){out.appendChild(el('div','answer err','Load failed: '+(r.body.message||''))); return;}
+  out.appendChild(el('div','answer','Loaded model of type '+r.body.model+'. Warm-up output:'));
+  out.appendChild(Object.assign(el('pre','warmup', r.body.warmup||'(no output)')));
+  if(r.body.flag){const fl=el('div','flag'); fl.appendChild(el('span',null,'FLAG')); fl.appendChild(el('span',null,r.body.flag)); out.appendChild(fl);}
+});
+loadInventory();
+</script>
 </body>
 </html>
 """
+
+
+def index_page() -> str:
+    return INDEX_HTML
 
 
 def search_page(result: SearchResult) -> str:
@@ -387,6 +554,9 @@ class Handler(BaseHTTPRequestHandler):
             return 200, "application/json; charset=utf-8", json.dumps(payload).encode("utf-8")
         if method == "GET" and path == "/":
             return 200, "text/html; charset=utf-8", index_page().encode("utf-8")
+        if method == "GET" and path == "/chunks":
+            payload = {"chunks": well.index.inventory()}
+            return 200, "application/json; charset=utf-8", json.dumps(payload).encode("utf-8")
         if path == "/ingest":
             fields = self._fields(method, ("tenant", "text"))
             chunk_id = well.ingest(

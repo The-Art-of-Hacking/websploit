@@ -290,6 +290,24 @@ class MindCoreHttpTests(_HttpCase):
         self.assertIn(app.POISON_FLAG, page)
         self.assertIn("rule: tainted-well-poison", page)
 
+    def test_index_page_has_no_flags(self) -> None:
+        status, page = self._request("GET", "/")
+        self.assertEqual(status, 200)
+        for flag in (app.POISON_FLAG, app.CROSS_FLAG, self.httpd.well.artifact_flag):
+            self.assertNotIn(flag, page)
+
+    def test_chunks_inventory_lists_without_bodies(self) -> None:
+        status, body = self._request("GET", "/chunks")
+        self.assertEqual(status, 200)
+        payload = json.loads(body)
+        ids = {chunk["id"] for chunk in payload["chunks"]}
+        self.assertIn("globex-ledger", ids)
+        self.assertNotIn(app.CROSS_FLAG, body)
+        for chunk in payload["chunks"]:
+            self.assertNotIn("body", chunk)
+            if chunk["id"] == "globex-ledger":
+                self.assertIs(chunk["private"], True)
+
     def test_empty_query_rejected(self) -> None:
         status, body = self._request("POST", "/search", {"tenant": "acme", "query": "   "})
         self.assertEqual(status, 400)
