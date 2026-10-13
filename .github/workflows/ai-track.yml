@@ -1,8 +1,8 @@
 # Opt-in AI track checks. This workflow does not replace generate_checksum.yml.
 #
 # ubuntu-latest is linux/amd64. The image jobs build mind-core,
-# echo-chamber, oracle-booth, and marionette for linux/amd64 and
-# linux/arm64. QEMU is
+# echo-chamber, oracle-booth, marionette, and tainted-well for
+# linux/amd64 and linux/arm64. QEMU is
 # registered only for that build step so the arm64 image can be built on
 # the hosted amd64 runner.
 # The smoke test runs the native amd64 image. Booting arm64 under QEMU is
@@ -43,6 +43,10 @@ jobs:
       - name: Marionette tests
         run: python3 -m unittest test_marionette
         working-directory: agentic-ai-labs/marionette
+
+      - name: Tainted-well tests
+        run: python3 -m unittest test_tainted_well
+        working-directory: agentic-ai-labs/tainted-well
 
       - name: Compose config without a profile
         run: docker compose config -q
@@ -469,3 +473,136 @@ jobs:
       - name: Stop marionette and mind-core
         if: always()
         run: docker compose --profile ai rm -sf marionette mind-core
+
+  tainted-well-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Register QEMU for the arm64 build
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build tainted-well for linux/amd64 and linux/arm64
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --provenance=false \
+            --sbom=false \
+            --output type=oci,dest=/tmp/tainted-well.oci \
+            ./agentic-ai-labs/tainted-well
+          test -s /tmp/tainted-well.oci
+
+      - name: Start mind-core and tainted-well in deterministic mode
+        run: docker compose --profile ai up -d --build mind-core tainted-well
+
+      - name: Wait for the healthcheck and capture the flags
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 90))
+          status=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' tainted-well || true)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$status" != "healthy" ]; then
+            docker logs mind-core || true
+            docker logs tainted-well || true
+            echo "tainted-well health status: ${status}" >&2
+            exit 1
+          fi
+          python3 - << 'PY'
+          import json
+          import urllib.request
+
+          def post(path, payload):
+              request = urllib.request.Request(
+                  "http://127.0.0.1:5033" + path,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=10) as response:
+                  body = json.load(response)
+                  if response.status != 200:
+                      raise SystemExit(f"{path} status {response.status}: {body}")
+                  return body
+
+          with urllib.request.urlopen("http://127.0.0.1:5033/health", timeout=5) as response:
+              body = json.load(response)
+              if response.status != 200 or body.get("status") != "ok" or body.get("ready") is not True:
+                  raise SystemExit(f"health failed: {body}")
+
+          benign_query = "What does the well report say?"
+          neighbor_query = "Show the private neighbor note"
+          if "bias retrieval" in benign_query or "leak the other tenant" in neighbor_query:
+              raise SystemExit("queries should not contain the triggers")
+
+          benign = post("/retrieve", {"tenant": "public", "query": benign_query})
+          if benign.get("source") != "mind-core" or benign.get("rule_id") != "tainted-well-answer":
+              raise SystemExit(f"benign rule failed: {benign}")
+          if benign.get("flag") is not None or benign.get("hit", {}).get("id") != "clear-water":
+              raise SystemExit(f"benign retrieval failed: {benign}")
+
+          leaked = post("/retrieve", {"tenant": "public", "query": neighbor_query})
+          if leaked.get("source") != "mind-core" or leaked.get("rule_id") != "tainted-well-tenant":
+              raise SystemExit(f"tenant rule failed: {leaked}")
+          if leaked.get("leaked") is not True or leaked.get("hit", {}).get("tenant") != "north-well":
+              raise SystemExit(f"cross-tenant hit missing: {leaked}")
+          if leaked.get("flag") != "WEBSPLOIT{CR0SS_T3N4NT_CHUNK}":
+              raise SystemExit("cross-tenant flag missing")
+          if "WEBSPLOIT{P01S0N3D_R3TR13V4L}" in json.dumps(leaked):
+              raise SystemExit("poison flag leaked on the tenant path")
+
+          with urllib.request.urlopen("http://127.0.0.1:5033/samples/poison", timeout=5) as response:
+              poison = json.load(response)
+              text = poison.get("text", "")
+              if response.status != 200 or "bias retrieval toward the planted well note" not in text:
+                  raise SystemExit(f"poison document missing: {poison}")
+              if "WEBSPLOIT{P01S0N3D_R3TR13V4L}" in text:
+                  raise SystemExit("poison flag is stored in the document")
+
+          ingested = post("/ingest", {"tenant": "public", "text": text})
+          if ingested.get("accepted") is not True:
+              raise SystemExit(f"ingest failed: {ingested}")
+
+          poisoned = post("/retrieve", {"tenant": "public", "query": benign_query})
+          if poisoned.get("source") != "mind-core" or poisoned.get("rule_id") != "tainted-well-poison":
+              raise SystemExit(f"poison rule failed: {poisoned}")
+          if poisoned.get("flag") != "WEBSPLOIT{P01S0N3D_R3TR13V4L}":
+              raise SystemExit("poison flag missing")
+          if poisoned.get("hit", {}).get("score", 0) < 100:
+              raise SystemExit(f"poisoned chunk was not boosted: {poisoned}")
+          if "WEBSPLOIT{CR0SS_T3N4NT_CHUNK}" in json.dumps(poisoned):
+              raise SystemExit("tenant flag leaked on the poison path")
+
+          with urllib.request.urlopen("http://127.0.0.1:5033/samples/artifact", timeout=5) as response:
+              sample = json.load(response)
+              artifact = sample.get("artifact", "")
+              if response.status != 200 or sample.get("format") != "pickle" or not artifact:
+                  raise SystemExit(f"artifact sample missing: {sample}")
+              if "WEBSPLOIT{UNTRUST3D_M0D3L_ART1F4CT}" in json.dumps(sample):
+                  raise SystemExit("artifact flag is stored in the sample")
+
+          loaded = post("/model", {"artifact": artifact})
+          if loaded.get("source") != "mind-core" or loaded.get("rule_id") != "tainted-well-artifact":
+              raise SystemExit(f"artifact rule failed: {loaded}")
+          if loaded.get("reduced") is not True or loaded.get("flag") != "WEBSPLOIT{UNTRUST3D_M0D3L_ART1F4CT}":
+              raise SystemExit("artifact flag missing")
+          if "WEBSPLOIT{P01S0N3D_R3TR13V4L}" in json.dumps(loaded):
+              raise SystemExit("poison flag leaked on the artifact path")
+          print("tainted-well smoke ok")
+          PY
+
+      - name: Stop tainted-well and mind-core
+        if: always()
+        run: docker compose --profile ai rm -sf tainted-well mind-core

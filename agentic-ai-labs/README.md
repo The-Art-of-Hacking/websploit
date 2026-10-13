@@ -26,11 +26,12 @@ Start the backend and one lab the same way:
 docker compose --profile ai up -d --build mind-core echo-chamber
 docker compose --profile ai up -d --build mind-core oracle-booth
 docker compose --profile ai up -d --build mind-core marionette
+docker compose --profile ai up -d --build mind-core tainted-well
 ```
 
-`docker compose --profile ai up -d --build` with no service names starts the classic stack and every service in the `ai` profile (`mind-core`, `oracle-booth`, `marionette`, and `echo-chamber`). Naming the services is how you avoid booting every classic lab.
+`docker compose --profile ai up -d --build` with no service names starts the classic stack and every service in the `ai` profile (`mind-core`, `oracle-booth`, `marionette`, `tainted-well`, and `echo-chamber`). Naming the services is how you avoid booting every classic lab.
 
-`docker compose up` without `--profile ai` does not create or start `mind-core`, `oracle-booth`, `marionette`, or `echo-chamber`.
+`docker compose up` without `--profile ai` does not create or start `mind-core`, `oracle-booth`, `marionette`, `tainted-well`, or `echo-chamber`.
 
 ## Backend tiers
 
@@ -51,7 +52,7 @@ The AI track uses `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039` on th
 | mind-core | 10.6.6.50 | 5030 | Deployed with profile `ai` |
 | oracle-booth | 10.6.6.51 | 5031 | Deployed with profile `ai` |
 | marionette | 10.6.6.52 | 5032 | Deployed with profile `ai`. Also 10.7.7.52 on `websploit-isolated`. |
-| tainted-well | 10.6.6.53 | 5033 | Reserved, not created |
+| tainted-well | 10.6.6.53 | 5033 | Deployed with profile `ai`. WebSploit only. |
 | echo-chamber | 10.6.6.54 | 5034 | Deployed with profile `ai` |
 | false-prophet | 10.6.6.55 | 5035 | Reserved, not created |
 | token-famine | 10.6.6.56 | 5036 | Reserved, not created |
@@ -64,9 +65,10 @@ The AI track uses `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039` on th
 | `mind-core/` | `mind-core` | Shared completion API. Not a vulnerable lab. |
 | `oracle-booth/` | `oracle-booth` | LLM01 prompt injection, LLM02 sensitive disclosure, LLM07 system prompt leakage. Intentionally vulnerable. |
 | `marionette/` | `marionette` | LLM06 excessive agency and LLM01 prompt injection. Intentionally vulnerable. |
+| `tainted-well/` | `tainted-well` | LLM03 supply chain, LLM04 data and model poisoning, LLM08 vector and embedding weaknesses. Intentionally vulnerable. |
 | `echo-chamber/` | `echo-chamber` | LLM05 improper output handling. Intentionally vulnerable. |
 
-Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./agentic-ai-labs/<dir>`, profile `ai`, a healthcheck, and memory and CPU limits. The track maps onto the OWASP Top 10 for LLM Applications (2025). `oracle-booth` is documented in [oracle-booth/README.md](oracle-booth/README.md). `marionette` is documented in [marionette/README.md](marionette/README.md). `echo-chamber` is documented in [echo-chamber/README.md](echo-chamber/README.md).
+Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./agentic-ai-labs/<dir>`, profile `ai`, a healthcheck, and memory and CPU limits. The track maps onto the OWASP Top 10 for LLM Applications (2025). `oracle-booth` is documented in [oracle-booth/README.md](oracle-booth/README.md). `marionette` is documented in [marionette/README.md](marionette/README.md). `tainted-well` is documented in [tainted-well/README.md](tainted-well/README.md). `echo-chamber` is documented in [echo-chamber/README.md](echo-chamber/README.md).
 
 ## Isolated network
 
@@ -79,7 +81,7 @@ Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./a
 | Internal | yes (no internet egress) |
 | Attached containers | `marionette` at 10.7.7.52 |
 
-`containers.sh` already prints this subnet. Compose creates this bridge when `marionette` attaches. `echo-chamber` and `oracle-booth` stay on `websploit` and do not join this network. The golden-stack check requires this declaration (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`), requires `marionette` on both networks, and rejects every other service that joins `websploit-isolated`. marionette stays on `websploit` as well, because mind-core is not on `websploit-isolated`. A container attached only to this network has no route to the public internet.
+`containers.sh` already prints this subnet. Compose creates this bridge when `marionette` attaches. `echo-chamber`, `oracle-booth`, and `tainted-well` stay on `websploit` and do not join this network. The golden-stack check requires this declaration (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`), requires `marionette` on both networks, and rejects every other service that joins `websploit-isolated`. marionette stays on `websploit` as well, because mind-core is not on `websploit-isolated`. A container attached only to this network has no route to the public internet.
 
 ## Calling mind-core
 
