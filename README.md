@@ -45,7 +45,7 @@ This script will:
 
 ## Available Containers
 
-WebSploit Labs includes a variety of vulnerable applications on the `websploit` bridge (`10.6.6.0/24`). An opt-in AI track stays out of `docker compose up` until you pass `--profile ai` and name the AI services. `docker compose --profile ai up` with no service names still starts the classic stack as well. An internal network (`websploit-isolated`, `10.7.7.0/24`) has no route to the internet. `marionette` is the only container attached to it.
+WebSploit Labs includes a variety of vulnerable applications on the `websploit` bridge (`10.6.6.0/24`). An opt-in AI track stays out of `docker compose up` until you pass `--profile ai` and name the AI services. A second profile, `ai-model`, turns on the optional local model and is valid only together with `ai`. `docker compose --profile ai up` with no service names still starts the classic stack as well. An internal network (`websploit-isolated`, `10.7.7.0/24`) has no route to the internet. `marionette` is the only container attached to it.
 
 ### WebSploit Network (10.6.6.0/24)
 
@@ -99,6 +99,12 @@ docker compose --profile ai up -d --build mind-core false-prophet
 docker compose --profile ai up -d --build mind-core token-famine
 ```
 
+The optional local model needs a second profile. It does not start with `--profile ai` alone, and it does not download a weight unless you ask for it:
+
+```bash
+docker compose --profile ai --profile ai-model up -d --build mind-core model-fetch local-gguf
+```
+
 | Container | IP Address | Port | Role |
 | --- | --- | --- | --- |
 | **mind-core** | 10.6.6.50 | 5030 | Shared deterministic backend for the AI track |
@@ -108,8 +114,10 @@ docker compose --profile ai up -d --build mind-core token-famine
 | **echo-chamber** | 10.6.6.54 | 5034 | LLM05 improper output handling (intentionally vulnerable) |
 | **false-prophet** | 10.6.6.55 | 5035 | LLM09 misinformation (intentionally vulnerable) |
 | **token-famine** | 10.6.6.56 | 5036 | LLM10 unbounded consumption (intentionally vulnerable). The flood is capped on purpose. |
+| **local-gguf** | 10.6.6.57 | none | Optional CPU llama.cpp server. Profiles `ai` and `ai-model` together. No host port. |
+| **model-fetch** | 10.6.6.58 | none | Downloads and SHA-256-checks the pinned GGUF. Same profiles. No host port. |
 
-`mind-core` is infrastructure, not a vulnerable challenge. `oracle-booth`, `marionette`, `tainted-well`, `echo-chamber`, `false-prophet`, and `token-famine` depend on it and start only with profile `ai`. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
+`mind-core` is infrastructure, not a vulnerable challenge. `oracle-booth`, `marionette`, `tainted-well`, `echo-chamber`, `false-prophet`, and `token-famine` depend on it and start only with profile `ai`. `local-gguf` and `model-fetch` start only when profile `ai-model` is combined with `ai`. `10.6.6.46`–`10.6.6.49`, `10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
 
 ---
 
@@ -141,6 +149,9 @@ docker compose --profile ai up -d --build mind-core marionette
 docker compose --profile ai up -d --build mind-core tainted-well
 docker compose --profile ai up -d --build mind-core false-prophet
 docker compose --profile ai up -d --build mind-core token-famine
+
+# Optional local model. Both profiles are required. This downloads the pinned GGUF.
+docker compose --profile ai --profile ai-model up -d --build mind-core model-fetch local-gguf
 ```
 
 ---
@@ -180,7 +191,9 @@ docker compose --profile ai up -d --build mind-core token-famine
 │  ├── tainted-well      10.6.6.53  (profile ai, port 5033)   │
 │  ├── echo-chamber      10.6.6.54  (profile ai, port 5034)   │
 │  ├── false-prophet     10.6.6.55  (profile ai, port 5035)   │
-│  └── token-famine      10.6.6.56  (profile ai, port 5036)   │
+│  ├── token-famine      10.6.6.56  (profile ai, port 5036)   │
+│  ├── local-gguf        10.6.6.57  (profile ai-model)        │
+│  └── model-fetch       10.6.6.58  (profile ai-model)        │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -268,4 +281,4 @@ Prebuilt container images (WebGoat, Juice Shop, DVWA, and the CTF images) keep t
 > - Run them only in a safe, isolated environment.
 > - Use them for educational and authorized testing purposes only.
 >
-> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber`, `oracle-booth`, `marionette`, `tainted-well`, `false-prophet`, and `token-famine` are intentionally vulnerable AI-track labs and are covered by this warning. The marionette tool sandbox has no internet egress. `tainted-well`, `false-prophet`, and `token-famine` stay on the `websploit` bridge and do not join that sandbox network. The token-famine flood is capped on purpose so the exercise cannot exhaust the host.
+> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber`, `oracle-booth`, `marionette`, `tainted-well`, `false-prophet`, and `token-famine` are intentionally vulnerable AI-track labs and are covered by this warning. The marionette tool sandbox has no internet egress. `tainted-well`, `false-prophet`, `token-famine`, `local-gguf`, and `model-fetch` stay on the `websploit` bridge and do not join that sandbox network. The token-famine flood is capped on purpose so the exercise cannot exhaust the host.

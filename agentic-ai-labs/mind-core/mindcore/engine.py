@@ -1,7 +1,8 @@
 """Deterministic completion engine and the pluggable backend boundary.
 
-Later issues can register a local GGUF backend or an external provider
-without changing callers. This module makes no outbound connections and
+The default backend is the rules engine. ``auto`` keeps that backend until
+the optional llama.cpp server on the lab bridge answers, then completions
+come from that server. An external provider is not registered. This module
 stores no credentials. The deterministic path does not use a timeout
 thread; it returns as soon as the rule table is scanned.
 """
@@ -119,6 +120,7 @@ class Engine:
         backends: Mapping[str, CompletionBackend],
         requested_backend: str,
         timeout_seconds: float,
+        mode: str | None = None,
     ) -> None:
         if "deterministic" not in backends:
             raise ValueError("deterministic backend is required")
@@ -127,7 +129,10 @@ class Engine:
         self._deterministic = deterministic
         self._backends = dict(backends)
         self.requested_backend = requested_backend
+        self.mode = requested_backend if mode is None else mode
         self.timeout_seconds = timeout_seconds
+        self._stop = threading.Event()
+        self._probe: threading.Thread | None = None
 
     @property
     def configured_backend(self) -> str:
@@ -154,6 +159,32 @@ class Engine:
         except (BackendTimeout, BackendUnavailable):
             return self._fallback(request)
         return self._completion(result, backend=backend.name, fallback=False)
+
+    def promote_local(self) -> None:
+        """Switch an ``auto`` process onto the local server after it is healthy."""
+
+        if self.mode != "auto" or "local" not in self._backends:
+            return
+        self.requested_backend = "local"
+
+    def start_probe(self, base_url: str, interval: float) -> None:
+        from mindcore.local import watch_local
+
+        if self._probe is not None:
+            return
+        thread = threading.Thread(
+            target=watch_local,
+            args=(base_url, self.promote_local, self._stop, interval),
+            name="mind-core-local-probe",
+            daemon=True,
+        )
+        self._probe = thread
+        thread.start()
+
+    def close(self) -> None:
+        self._stop.set()
+        if self._probe is not None:
+            self._probe.join(timeout=1.0)
 
     def _fallback(self, request: CompletionRequest) -> Completion:
         result = self._deterministic.complete(request)
@@ -205,19 +236,34 @@ def build_engine(
     rules_path: Path,
     requested_backend: str = "deterministic",
     timeout_seconds: float = 2.0,
+    local_base_url: str = "",
+    probe_interval: float = 2.0,
 ) -> Engine:
     """Build the process engine.
 
-    Only the deterministic backend is registered. A later issue should
-    register additional ``CompletionBackend`` objects in this function.
+    ``deterministic`` is always registered. ``local`` is registered when
+    ``requested_backend`` is ``local`` or ``auto`` and ``local_base_url``
+    is set. ``auto`` serves the rules engine until that server is healthy.
     """
 
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", requested_backend):
         raise ValueError("requested backend name is invalid")
+    if probe_interval <= 0:
+        raise ValueError("probe_interval must be positive")
     table = load_rule_table(rules_path)
     deterministic = DeterministicBackend(table)
     backends: dict[str, CompletionBackend] = {deterministic.name: deterministic}
-    return Engine(deterministic, backends, requested_backend, timeout_seconds)
+    resolved_url = ""
+    if requested_backend in {"local", "auto"} and local_base_url:
+        from mindcore.local import LocalBackend, validate_local_base_url
+
+        resolved_url = validate_local_base_url(local_base_url)
+        backends["local"] = LocalBackend(resolved_url, timeout_seconds)
+    effective = "deterministic" if requested_backend == "auto" else requested_backend
+    engine = Engine(deterministic, backends, effective, timeout_seconds, mode=requested_backend)
+    if requested_backend == "auto" and resolved_url:
+        engine.start_probe(resolved_url, probe_interval)
+    return engine
 
 
 def _parse_rule(entry: object) -> _Rule:

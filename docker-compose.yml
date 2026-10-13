@@ -222,7 +222,9 @@ services:
 # It stays on websploit only.
 # token-famine is the unbounded-consumption lab and is intentionally vulnerable.
 # It stays on websploit only. The meter is hard-capped.
-# Unused buffer: 10.6.6.46-.49. Unused remainder: 10.6.6.57-.59 and ports 5037-5039.
+# Unused buffer: 10.6.6.46-.49. local-gguf is 10.6.6.57 and model-fetch is 10.6.6.58.
+# Neither publishes a host port. Unused remainder: 10.6.6.59 and ports 5037-5039.
+# Profile ai-model starts those two services only together with profile ai.
   mind-core:
     profiles: ["ai"]
     container_name: mind-core
@@ -240,7 +242,11 @@ services:
     tmpfs:
       - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
     environment:
-      MIND_CORE_BACKEND: deterministic
+      # auto stays on the rules engine until local-gguf is healthy.
+      # Override with MIND_CORE_BACKEND=deterministic to ignore the model.
+      MIND_CORE_BACKEND: ${MIND_CORE_BACKEND:-auto}
+      MIND_CORE_LOCAL_BASE_URL: http://local-gguf:8080
+      MIND_CORE_BACKEND_TIMEOUT_SECONDS: ${MIND_CORE_BACKEND_TIMEOUT_SECONDS:-15}
       HOME: /tmp
     networks:
       websploit:
@@ -469,6 +475,82 @@ services:
       retries: 3
       start_period: 5s
 
+  # Optional CPU GGUF tier. Profile ai-model depends on mind-core, so it is
+  # valid only together with profile ai. Profile ai does not start these
+  # services and does not download the weight. No host port: mind-core calls
+  # local-gguf on the websploit bridge. Neither service joins websploit-isolated.
+  model-fetch:
+    profiles: ["ai-model"]
+    container_name: model-fetch
+    build:
+      context: ./agentic-ai-labs/mind-core
+      dockerfile: fetch.Dockerfile
+    restart: "no"
+    depends_on:
+      mind-core:
+        condition: service_healthy
+    mem_limit: 256m
+    cpus: 0.50
+    pids_limit: 64
+    # Starts as root only to chown the volume, then setuid(10001) before the download.
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      HOME: /tmp
+      MIND_CORE_MODEL_DIR: /models
+    volumes:
+      - gguf-cache:/models
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.58
+
+  local-gguf:
+    profiles: ["ai-model"]
+    container_name: local-gguf
+    image: ghcr.io/ggml-org/llama.cpp:server@sha256:c789283572ba78c2699b8945a96e654c850f938a717883f2e6187a14adac698f
+    restart: unless-stopped
+    user: "10001:10001"
+    depends_on:
+      mind-core:
+        condition: service_healthy
+      model-fetch:
+        condition: service_completed_successfully
+    mem_limit: 1536m
+    cpus: 1.50
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=64m,mode=1777,noexec,nosuid,nodev
+    environment:
+      HOME: /tmp
+    command:
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8080"
+      - --model
+      - /models/qwen2.5-0.5b-instruct-q4_k_m.gguf
+      - --ctx-size
+      - "4096"
+      - --threads
+      - "2"
+      - --n-gpu-layers
+      - "0"
+    volumes:
+      - gguf-cache:/models:ro
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.57
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
 # Network configuration
 networks:
   websploit:
@@ -486,4 +568,8 @@ networks:
       config:
         - subnet: 10.7.7.0/24
           gateway: 10.7.7.1
+
+# The GGUF is not in git. model-fetch writes it here after the SHA-256 check.
+volumes:
+  gguf-cache:
 
