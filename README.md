@@ -45,7 +45,7 @@ This script will:
 
 ## Available Containers
 
-WebSploit Labs includes a variety of vulnerable applications on the `websploit` bridge (`10.6.6.0/24`). An opt-in AI track stays out of `docker compose up` until you pass `--profile ai`. An internal network (`websploit-isolated`, `10.7.7.0/24`) is declared for a later lab and has no containers yet.
+WebSploit Labs includes a variety of vulnerable applications on the `websploit` bridge (`10.6.6.0/24`). An opt-in AI track stays out of `docker compose up` until you pass `--profile ai` and name the AI services. `docker compose --profile ai up` with no service names still starts the classic stack as well. An internal network (`websploit-isolated`, `10.7.7.0/24`) is declared for a later lab and has no containers yet.
 
 ### WebSploit Network (10.6.6.0/24)
 
@@ -87,16 +87,11 @@ Custom-built labs focusing on specific vulnerability categories. These labs are 
 
 #### Opt-in AI track (Compose profile `ai`)
 
-`docker compose up` does not start this track. Opt in with:
-
-```bash
-docker compose --profile ai up -d --build
-```
-
-To build and start only the shared backend:
+`docker compose up` does not start this track. `docker compose --profile ai up -d --build` starts the classic stack and the AI services. To build and start just the shared backend, or the backend plus echo-chamber, activate the profile and name the services:
 
 ```bash
 docker compose --profile ai up -d --build mind-core
+docker compose --profile ai up -d --build mind-core echo-chamber
 ```
 
 | Container | IP Address | Port | Role |
@@ -111,10 +106,10 @@ docker compose --profile ai up -d --build mind-core
 ## Quick Start Commands
 
 ```bash
-# Start all containers
+# Start the classic stack. The AI track stays off.
 docker compose up -d
 
-# Start with build (for additional labs)
+# Start classic labs that are built from this repo. The AI track stays off.
 docker compose up -d --build
 
 # View running containers
@@ -129,7 +124,7 @@ docker compose down
 # Rebuild specific containers
 docker compose build --no-cache [container_name]
 
-# Opt in to the AI track. The commands above do not start it.
+# Start mind-core and echo-chamber. Naming the services leaves the classic stack down.
 docker compose --profile ai up -d --build mind-core echo-chamber
 ```
 

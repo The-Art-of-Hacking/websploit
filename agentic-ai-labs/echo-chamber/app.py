@@ -113,6 +113,9 @@ class CaptureBoard:
 
 def init_db(sql_flag: str) -> sqlite3.Connection:
     connection = sqlite3.connect(":memory:", check_same_thread=False)
+    # The container root is read-only. Keep SQLite scratch space in memory
+    # so the concatenated query still runs. This does not parameterize it.
+    connection.execute("PRAGMA temp_store = MEMORY")
     connection.execute("CREATE TABLE findings (title TEXT PRIMARY KEY, body TEXT NOT NULL)")
     connection.execute("CREATE TABLE secrets (name TEXT PRIMARY KEY, value TEXT NOT NULL)")
     connection.execute(

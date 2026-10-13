@@ -8,23 +8,25 @@ More about WebSploit Labs: [https://websploit.org](https://websploit.org). Sourc
 
 ## Opt in
 
-From the repository root:
+From the repository root, a plain Compose up leaves the AI track off:
 
 ```bash
-docker compose --profile ai up -d --build
+docker compose up -d
 ```
 
-That builds every service in the `ai` profile. Today that is `mind-core` and `echo-chamber`. To start the backend without the lab:
+Start just the shared backend by activating the profile and naming the service:
 
 ```bash
 docker compose --profile ai up -d --build mind-core
 ```
 
-To start the backend and the improper-output-handling lab:
+Start the backend and the improper-output-handling lab the same way:
 
 ```bash
 docker compose --profile ai up -d --build mind-core echo-chamber
 ```
+
+`docker compose --profile ai up -d --build` with no service names starts the classic stack and every service in the `ai` profile (`mind-core` and `echo-chamber`). Naming the services is how you avoid booting every classic lab.
 
 `docker compose up` without `--profile ai` does not create or start `mind-core` or `echo-chamber`.
 
@@ -73,8 +75,8 @@ Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./a
 | Internal | yes (no internet egress) |
 | Attached containers | none |
 
-`containers.sh` already prints this subnet. The network is declared in Compose so that reference has a definition to match. Compose v2 does not create a network until a service references it, unless you pass `--all-resources`, so `10.7.7.1` will not show up on the host until `marionette` attaches. The golden-stack check reads the declaration with `--all-resources` and fails if any service attaches before that guard is updated.
+`containers.sh` already prints this subnet. The network is declared in Compose so that reference has a definition to match. Compose v2 does not create a network until a service references it, unless you pass `--all-resources`, so `10.7.7.1` will not show up on the host until `marionette` attaches. `echo-chamber` stays on `websploit` and does not join this network. The golden-stack check requires this declaration (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`) and allows a later service to reference the network. marionette has to join `websploit` as well, because mind-core is not on `websploit-isolated`.
 
 ## Calling mind-core
 
-From another container on the `websploit` network, use `http://mind-core:5030` or `http://10.6.6.50:5030`. From the host, use `http://127.0.0.1:5030`. The request and response contract is in [mind-core/README.md](mind-core/README.md).
+`http://mind-core:5030` and `http://10.6.6.50:5030` resolve only on the `websploit` network. A container attached solely to `websploit-isolated` cannot call the backend. The future marionette lab must join both networks. From the host, use `http://127.0.0.1:5030`. The request and response contract is in [mind-core/README.md](mind-core/README.md).

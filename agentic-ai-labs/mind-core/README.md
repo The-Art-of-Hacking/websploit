@@ -20,7 +20,7 @@ From the repository root:
 docker compose --profile ai up -d --build mind-core
 ```
 
-The service listens on container port `5030`, host port `5030`, and `10.6.6.50` on the `websploit` network. It does not join `websploit-isolated`.
+The service listens on container port `5030`, host port `5030`, and `10.6.6.50` on the `websploit` network. It does not join `websploit-isolated`. Naming `mind-core` on that command leaves the classic labs stopped. `rules.json` is copied into the image, so a rule or flag edit needs this same rebuild; a restart keeps the previous copy.
 
 ```bash
 curl -sS http://127.0.0.1:5030/health
@@ -39,7 +39,7 @@ docker compose --profile ai rm -sf mind-core
 
 ## HTTP contract
 
-Base URL from another lab container: `http://mind-core:5030` (or `http://10.6.6.50:5030`).
+Base URL from another container on the `websploit` network: `http://mind-core:5030` (or `http://10.6.6.50:5030`). Those names resolve only on `websploit`. A container attached solely to `websploit-isolated` cannot call this service. The future marionette lab must join both networks.
 
 ### `GET /health`
 
@@ -49,7 +49,7 @@ Base URL from another lab container: `http://mind-core:5030` (or `http://10.6.6.
 {"status":"ok","ready":true,"backend":"deterministic","requested_backend":"deterministic"}
 ```
 
-`backend` is the engine that will produce text today (`deterministic`). `requested_backend` is the value of `MIND_CORE_BACKEND`.
+`backend` is the backend this process is configured to call: the registered backend named by `MIND_CORE_BACKEND`, or `deterministic` when that name is not registered. `requested_backend` is the value of `MIND_CORE_BACKEND`.
 
 ### `POST /v1/complete`
 
@@ -102,6 +102,12 @@ Built-in triggers:
 Templates may use only `{lab}`, `{prompt_length}`, and `{prompt_excerpt}`. Those tokens are replaced once. A prompt that contains `{lab}` is not evaluated as a template. `{lab}` renders as `unspecified` when the request omits `lab`. Excerpts drop control characters and are capped at 120 characters.
 
 `echo-chamber` added its rules here. Those strings are data. This service returns them and does not render HTML, run SQL, or start a shell. Flag strings are training markers for that lab, not credentials.
+
+`rules.json` is copied into the image (`COPY` in the Dockerfile). Compose does not mount it. A rule or flag edit requires a rebuild:
+
+```bash
+docker compose --profile ai up -d --build mind-core
+```
 
 Later labs should add a rule here instead of embedding a model. Example shape for a future flag:
 

@@ -2,18 +2,29 @@
 """Fail if the default Compose footprint drifts.
 
 With no profile, service names, static IPs, and published host ports must
-match the checked-in golden files. mind-core and echo-chamber are allowed
-only with --profile ai.
+match the checked-in golden files. mind-core, echo-chamber, and later
+AI labs stay behind the ``ai`` profile and must not appear in that
+default set.
 
-The websploit-isolated network must exist and stay internal. No service
-joins it in this issue. The marionette lab has to update this guard when
-it attaches to that network.
+With ``--profile ai``, mind-core and echo-chamber must both be present.
+Services beyond the default set are allowed when their Compose profile
+includes ``ai``, their IPv4 on the ``websploit`` network is in
+10.6.6.50–10.6.6.59, and every published host port is in 5030–5039.
+Those services must not change a default service's name, IP, or host
+port. mind-core and echo-chamber stay on ``websploit`` only.
+echo-chamber depends on mind-core with ``condition: service_healthy``.
+
+A later service may also attach to ``websploit-isolated`` (marionette,
+which has to join both networks). The golden IPv4 is the ``websploit``
+address. echo-chamber does not attach there. The declaration must stay
+10.7.7.0/24, gateway 10.7.7.1, internal: true.
 """
 
 from __future__ import annotations
 
 import difflib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -22,8 +33,8 @@ ROOT = Path(__file__).resolve().parents[2]
 GOLDEN = ROOT / ".github" / "golden-stack"
 MIND_CORE_ENDPOINT = "mind-core 10.6.6.50 5030:5030/tcp"
 ECHO_CHAMBER_ENDPOINT = "echo-chamber 10.6.6.54 5034:5034/tcp"
-AI_ONLY = ("mind-core", "echo-chamber")
-AI_PORTS = ("5030:5030/tcp", "5034:5034/tcp")
+AI_PORT_MIN = 5030
+AI_PORT_MAX = 5039
 
 
 def main() -> int:
@@ -31,34 +42,18 @@ def main() -> int:
     profiled = compose_config("ai")
     compare("services", service_names(default), read_lines(GOLDEN / "services.txt"))
     compare("endpoints", endpoints(default), read_lines(GOLDEN / "endpoints.txt"))
-    default_endpoints = "\n".join(endpoints(default))
-    for name in AI_ONLY:
-        if name in default.get("services", {}):
-            raise SystemExit(f"{name} is part of the default stack; it must stay behind the ai profile")
-    for published in AI_PORTS:
-        if published in default_endpoints:
-            raise SystemExit(f"host port {published} is published without the ai profile")
-
-    names = service_names(profiled)
-    expected = service_names(default) + list(AI_ONLY)
-    if names != sorted(expected):
-        raise SystemExit("profile ai must add mind-core and echo-chamber and keep every default service")
-    require_ai_service(profiled, "mind-core", MIND_CORE_ENDPOINT)
-    require_ai_service(profiled, "echo-chamber", ECHO_CHAMBER_ENDPOINT)
-    require_healthy_dependency(profiled["services"]["echo-chamber"], "echo-chamber", "mind-core")
+    assert_default_has_no_ai_track(default)
+    require_ai_additions(default, profiled)
     require_isolated_source()
     require_isolated(default)
     require_isolated(profiled)
-    require_unattached(default)
-    require_unattached(profiled)
     print("golden stack ok")
     return 0
 
 
 def compose_config(profile: str | None) -> dict:
     # --all-resources keeps websploit-isolated visible. Compose otherwise
-    # drops networks that no enabled service references, and no service
-    # joins that network until the marionette lab.
+    # drops networks that no enabled service references.
     # --profile is a global flag and must come before the subcommand.
     completed = _run_compose(profile, all_resources=True)
     if completed.returncode != 0 and _missing_all_resources(completed.stderr):
@@ -88,10 +83,15 @@ def service_names(config: dict) -> list[str]:
     return sorted(config.get("services", {}))
 
 
-def endpoints(config: dict) -> list[str]:
+def endpoints(config: dict, only: set[str] | None = None) -> list[str]:
     lines: list[str] = []
-    for name, service in config.get("services", {}).items():
-        address = ipv4_address(name, service)
+    services = config.get("services") or {}
+    selected = sorted(services if only is None else only)
+    for name in selected:
+        service = services.get(name)
+        if not isinstance(service, dict):
+            continue
+        address = websploit_ipv4(name, service)
         ports = service.get("ports") or []
         if not ports:
             lines.append(f"{name} {address} -")
@@ -101,18 +101,24 @@ def endpoints(config: dict) -> list[str]:
     return sorted(lines)
 
 
-def ipv4_address(name: str, service: dict) -> str:
+def websploit_ipv4(name: str, service: dict) -> str:
+    """Return the static address on the websploit bridge.
+
+    A service may also be attached to websploit-isolated. The golden
+    address is the websploit one, not whichever attachment happens to
+    be the only one.
+    """
+
     networks = service.get("networks") or {}
     if not isinstance(networks, dict):
-        raise SystemExit(f"{name} is missing a static ipv4_address")
-    found = [
-        cfg.get("ipv4_address")
-        for cfg in networks.values()
-        if isinstance(cfg, dict) and cfg.get("ipv4_address")
-    ]
-    if len(found) != 1:
-        raise SystemExit(f"{name} should have one static ipv4_address, found {found}")
-    return str(found[0])
+        raise SystemExit(f"{name} is missing a static ipv4_address on websploit")
+    attachment = networks.get("websploit")
+    if not isinstance(attachment, dict):
+        raise SystemExit(f"{name} is missing a static ipv4_address on websploit")
+    address = attachment.get("ipv4_address")
+    if not address:
+        raise SystemExit(f"{name} is missing a static ipv4_address on websploit")
+    return str(address)
 
 
 def normalize_port(port: object) -> str:
@@ -131,12 +137,157 @@ def normalize_port(port: object) -> str:
     return f"{published}:{target}/{protocol}"
 
 
-def require_ai_service(config: dict, name: str, endpoint: str) -> None:
-    lines = [line for line in endpoints(config) if line.startswith(name + " ")]
-    if lines != [endpoint]:
-        raise SystemExit(f"{name} endpoint is {lines}, expected {endpoint}")
-    require_limits(config["services"][name], name)
-    networks = sorted((config["services"][name].get("networks") or {}))
+def assert_default_has_no_ai_track(config: dict) -> None:
+    services = config.get("services") or {}
+    for name in ("mind-core", "echo-chamber"):
+        if name in services:
+            raise SystemExit(f"{name} is part of the default stack; it must stay behind the ai profile")
+    for line in endpoints(config):
+        name, address, port = line.split(" ", 2)
+        if _ai_address(address):
+            raise SystemExit(f"{name} uses AI-track address {address} without the ai profile")
+        if port != "-" and _host_port(port) in _ai_ports():
+            raise SystemExit(f"{name} publishes an AI-track host port without the ai profile")
+
+
+def require_ai_additions(default: dict, profiled: dict) -> None:
+    default_names = set(service_names(default))
+    profiled_names = set(service_names(profiled))
+    missing = sorted(default_names - profiled_names)
+    if missing:
+        raise SystemExit(f"profile ai dropped default services: {missing}")
+    compare(
+        "default endpoints with profile ai",
+        endpoints(profiled, default_names),
+        endpoints(default),
+        "profile ai changed a default service name, IP, or host port",
+    )
+    _reject_isolated(default, default_names, "default services stay on websploit")
+    _reject_isolated(profiled, default_names, "default services stay on websploit")
+
+    extras = sorted(profiled_names - default_names)
+    missing_ai = [name for name in ("mind-core", "echo-chamber") if name not in extras]
+    if missing_ai:
+        raise SystemExit(f"profile ai must include mind-core and echo-chamber; missing {missing_ai}")
+
+    used_addresses: dict[str, str] = {}
+    used_ports: dict[int, str] = {}
+    for line in endpoints(default):
+        name, address, port = line.split(" ", 2)
+        used_addresses[address] = name
+        if port != "-":
+            used_ports[_host_port(port)] = name
+
+    for name in extras:
+        service = profiled["services"][name]
+        if "ai" not in _profiles(name, service):
+            raise SystemExit(
+                f"{name} is enabled with --profile ai but its Compose profile does not include ai"
+            )
+        address = websploit_ipv4(name, service)
+        if not _ai_address(address):
+            raise SystemExit(f"{name} websploit address {address} is outside 10.6.6.50-10.6.6.59")
+        owner = used_addresses.get(address)
+        if owner is not None:
+            raise SystemExit(f"{name} reuses websploit address {address} already used by {owner}")
+        used_addresses[address] = name
+        ports = service.get("ports") or []
+        if not isinstance(ports, list):
+            raise SystemExit(f"{name} has an unrecognized ports entry")
+        for port in ports:
+            host = _host_port(normalize_port(port))
+            if host not in _ai_ports():
+                raise SystemExit(f"{name} publishes host port {host}, outside 5030-5039")
+            port_owner = used_ports.get(host)
+            if port_owner is not None:
+                raise SystemExit(f"{name} reuses host port {host} already used by {port_owner}")
+            used_ports[host] = name
+
+    mind = profiled["services"]["mind-core"]
+    mind_lines = endpoints(profiled, {"mind-core"})
+    if mind_lines != [MIND_CORE_ENDPOINT]:
+        raise SystemExit(f"mind-core endpoint is {mind_lines}, expected {[MIND_CORE_ENDPOINT]}")
+    require_limits(mind, "mind-core")
+    _require_websploit_only(mind, "mind-core")
+
+    chamber = profiled["services"]["echo-chamber"]
+    chamber_lines = endpoints(profiled, {"echo-chamber"})
+    if chamber_lines != [ECHO_CHAMBER_ENDPOINT]:
+        raise SystemExit(f"echo-chamber endpoint is {chamber_lines}, expected {[ECHO_CHAMBER_ENDPOINT]}")
+    require_limits(chamber, "echo-chamber")
+    _require_websploit_only(chamber, "echo-chamber")
+    require_healthy_dependency(chamber, "echo-chamber", "mind-core")
+
+
+def _reject_isolated(config: dict, names: set[str], reason: str) -> None:
+    services = config.get("services") or {}
+    for name in sorted(names):
+        service = services.get(name) or {}
+        networks = service.get("networks") or {}
+        if isinstance(networks, dict) and "websploit-isolated" in networks:
+            raise SystemExit(f"{name} joined websploit-isolated; {reason}")
+
+
+def _profiles(name: str, service: dict) -> list[str]:
+    raw = service.get("profiles")
+    if isinstance(raw, str) and raw:
+        return [raw]
+    if isinstance(raw, list) and raw and all(isinstance(item, str) and item for item in raw):
+        return list(raw)
+    return _profiles_from_source(name)
+
+
+def _profiles_from_source(name: str) -> list[str]:
+    text = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    lines = text.splitlines()
+    start = next((index for index, line in enumerate(lines) if line == f"  {name}:"), None)
+    if start is None:
+        raise SystemExit(f"{name} is not declared in docker-compose.yml")
+    block: list[str] = []
+    for line in lines[start + 1 :]:
+        if line.startswith("  ") and not line.startswith("   ") and not line.startswith("  #"):
+            break
+        if line and not line.startswith((" ", "#")):
+            break
+        block.append(line)
+    for index, line in enumerate(block):
+        inline = re.fullmatch(r"    profiles:\s*\[(.*)]\s*", line)
+        if inline:
+            return [item.strip().strip("\"'") for item in inline.group(1).split(",") if item.strip()]
+        if re.fullmatch(r"    profiles:\s*", line):
+            found: list[str] = []
+            for follower in block[index + 1 :]:
+                match = re.fullmatch(r"      - [\"']?([A-Za-z0-9_.-]+)[\"']?", follower)
+                if match is None:
+                    break
+                found.append(match.group(1))
+            return found
+    return []
+
+
+def _ai_address(address: str) -> bool:
+    parts = address.split(".")
+    if len(parts) != 4 or parts[:3] != ["10", "6", "6"]:
+        return False
+    last = parts[3]
+    if not last.isdigit() or (len(last) > 1 and last.startswith("0")):
+        return False
+    return 50 <= int(last) <= 59
+
+
+def _ai_ports() -> range:
+    return range(AI_PORT_MIN, AI_PORT_MAX + 1)
+
+
+def _host_port(rendered: str) -> int:
+    host = rendered.split(":", 1)[0]
+    if not host.isdigit():
+        raise SystemExit(f"unrecognized published port {rendered}")
+    return int(host)
+
+
+def _require_websploit_only(service: dict, name: str) -> None:
+    networks = sorted((service.get("networks") or {}))
     if networks != ["websploit"]:
         raise SystemExit(f"{name} networks are {networks}; it must stay on websploit only")
 
@@ -199,21 +350,19 @@ ISOLATED_BLOCK = """\
 
 
 def require_isolated_source() -> None:
-    """Compose omits a network from `config` until a service references it.
+    """Require the websploit-isolated declaration in docker-compose.yml.
 
-    The declaration in docker-compose.yml is still the contract. marionette
-    has to attach before `docker compose up` will create the bridge.
+    A service may name that network. Compose still creates the bridge
+    only after a service attaches, unless ``--all-resources`` is set.
     """
 
     text = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    require_isolated_text(text)
+
+
+def require_isolated_text(text: str) -> None:
     if ISOLATED_BLOCK not in text:
         raise SystemExit("docker-compose.yml is missing the websploit-isolated declaration")
-    for line in text.splitlines():
-        if "websploit-isolated" not in line or line.strip().startswith("#"):
-            continue
-        if line.startswith("  websploit-isolated:"):
-            continue
-        raise SystemExit(f"unexpected websploit-isolated reference: {line}")
 
 
 def require_isolated(config: dict) -> None:
@@ -231,18 +380,11 @@ def require_isolated(config: dict) -> None:
         raise SystemExit(f"websploit-isolated gateway is {gateway}")
 
 
-def require_unattached(config: dict) -> None:
-    for name, service in config.get("services", {}).items():
-        networks = service.get("networks") or {}
-        if isinstance(networks, dict) and "websploit-isolated" in networks:
-            raise SystemExit(f"{name} joined websploit-isolated; only a later marionette change should do that")
-
-
 def read_lines(path: Path) -> list[str]:
     return [line for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def compare(label: str, actual: list[str], expected: list[str]) -> None:
+def compare(label: str, actual: list[str], expected: list[str], message: str | None = None) -> None:
     if actual == expected:
         return
     diff = difflib.unified_diff(
@@ -252,7 +394,7 @@ def compare(label: str, actual: list[str], expected: list[str]) -> None:
         tofile=f"compose {label}",
     )
     sys.stderr.writelines(diff)
-    raise SystemExit(f"default stack {label} drifted")
+    raise SystemExit(message or f"default stack {label} drifted")
 
 
 if __name__ == "__main__":

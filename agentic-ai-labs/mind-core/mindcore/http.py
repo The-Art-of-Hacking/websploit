@@ -141,7 +141,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {
                 "status": "ok",
                 "ready": True,
-                "backend": "deterministic",
+                "backend": engine.configured_backend,
                 "requested_backend": engine.requested_backend,
             })
             self._log(200, started, lab=None, rule_id=None, fallback=False)
@@ -276,7 +276,7 @@ class Handler(BaseHTTPRequestHandler):
             "status": status,
             "lab": lab,
             "rule_id": rule_id,
-            "backend": "deterministic",
+            "backend": None if engine is None else engine.configured_backend,
             "requested_backend": None if engine is None else engine.requested_backend,
             "fallback": fallback,
             "duration_ms": max(int((time.perf_counter() - started) * 1000), 0),
@@ -303,7 +303,7 @@ def main() -> None:
         "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "level": "info",
         "event": "startup",
-        "backend": "deterministic",
+        "backend": engine.configured_backend,
         "requested_backend": engine.requested_backend,
         "port": settings.port,
     }, separators=(",", ":")) + "\n")
