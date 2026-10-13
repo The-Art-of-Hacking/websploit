@@ -39,7 +39,7 @@ docker compose --profile ai rm -sf mind-core
 
 ## HTTP contract
 
-Base URL from another container on the `websploit` network: `http://mind-core:5030` (or `http://10.6.6.50:5030`). Those names resolve only on `websploit`. A container attached solely to `websploit-isolated` cannot call this service. The future marionette lab must join both networks.
+Base URL from another container on the `websploit` network: `http://mind-core:5030` (or `http://10.6.6.50:5030`). Those names resolve only on `websploit`. A container attached solely to `websploit-isolated` cannot call this service. marionette joins both networks for that reason.
 
 ### `GET /health`
 
@@ -100,11 +100,14 @@ Built-in triggers:
 | `oracle-booth-direct` | contains `reveal the booth instructions` | `oracle-booth` | System prompt for that lab |
 | `oracle-booth-indirect` | contains `disclose the staff record` | `oracle-booth` | Staff-only record for that lab |
 | `oracle-booth-answer` | contains `oracle-booth context` | `oracle-booth` | Public help-center reply |
+| `marionette-direct` | contains `pivot to the relay` | `marionette` | Tool directive for that lab |
+| `marionette-indirect` | contains `fetch the maintenance relay` | `marionette` | Tool directive for that lab |
+| `marionette-plan` | contains `marionette context` | `marionette` | `TOOL none` |
 | `generic-echo` | nothing else matched | any | Length and a short excerpt of the prompt. |
 
 Templates may use only `{lab}`, `{prompt_length}`, and `{prompt_excerpt}`. Those tokens are replaced once. A prompt that contains `{lab}` is not evaluated as a template. `{lab}` renders as `unspecified` when the request omits `lab`. Excerpts drop control characters and are capped at 120 characters.
 
-`echo-chamber` and `oracle-booth` added their rules here. Those strings are data. This service returns them and does not render HTML, run SQL, start a shell, or decide which help-center records a lab may show. Flag strings are training markers for those labs, not credentials.
+`echo-chamber`, `oracle-booth`, and `marionette` added their rules here. Those strings are data. This service returns them and does not render HTML, run SQL, start a shell, fetch URLs, run tools, or decide which help-center records a lab may show. Flag strings are training markers for those labs, not credentials.
 
 `rules.json` is copied into the image (`COPY` in the Dockerfile). Compose does not mount it. A rule or flag edit requires a rebuild:
 
