@@ -575,6 +575,11 @@ jobs:
           benign = post("/model/load", {"artifact": base64.b64encode(pickle.dumps({"name": "toy"})).decode("ascii")})
           if benign.get("flag") is not None:
               raise SystemExit(f"benign artifact released a flag: {benign}")
+
+          with urllib.request.urlopen("http://127.0.0.1:5033/chunks", timeout=5) as response:
+              inventory = response.read().decode("utf-8")
+          if "globex-ledger" not in inventory or CROSS in inventory:
+              raise SystemExit(f"chunks inventory is wrong: {inventory}")
           print("tainted-well smoke ok")
           PY
 
