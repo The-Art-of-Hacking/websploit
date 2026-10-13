@@ -94,6 +94,13 @@
       "text": "TOOL http_get http://10.6.6.32:5012/"
     },
     {
+      "id": "marionette-fetch",
+      "lab": "marionette",
+      "match_type": "contains",
+      "match": "http://10.6.6.",
+      "text": "TOOL http_get"
+    },
+    {
       "id": "marionette-plan",
       "lab": "marionette",
       "match_type": "contains",

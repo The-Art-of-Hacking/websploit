@@ -37,6 +37,7 @@ EXISTING_RULE_IDS = (
     "echo-chamber-shell",
     "marionette-direct",
     "marionette-indirect",
+    "marionette-fetch",
     "marionette-plan",
 )
 
