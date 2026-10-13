@@ -1,7 +1,7 @@
 # Opt-in AI track checks. This workflow does not replace generate_checksum.yml.
 #
 # ubuntu-latest is linux/amd64. The image jobs build mind-core,
-# echo-chamber, oracle-booth, marionette, and tainted-well for
+# echo-chamber, oracle-booth, marionette, tainted-well, and false-prophet for
 # linux/amd64 and linux/arm64. QEMU is
 # registered only for that build step so the arm64 image can be built on
 # the hosted amd64 runner.
@@ -47,6 +47,10 @@ jobs:
       - name: Tainted-well tests
         run: python3 -m unittest test_tainted_well
         working-directory: agentic-ai-labs/tainted-well
+
+      - name: False-prophet tests
+        run: python3 -m unittest test_false_prophet
+        working-directory: agentic-ai-labs/false-prophet
 
       - name: Compose config without a profile
         run: docker compose config -q
@@ -606,3 +610,115 @@ jobs:
       - name: Stop tainted-well and mind-core
         if: always()
         run: docker compose --profile ai rm -sf tainted-well mind-core
+
+  false-prophet-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Register QEMU for the arm64 build
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build false-prophet for linux/amd64 and linux/arm64
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --provenance=false \
+            --sbom=false \
+            --output type=oci,dest=/tmp/false-prophet.oci \
+            ./agentic-ai-labs/false-prophet
+          test -s /tmp/false-prophet.oci
+
+      - name: Start mind-core and false-prophet in deterministic mode
+        run: docker compose --profile ai up -d --build mind-core false-prophet
+
+      - name: Wait for the healthcheck and capture the flag
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 90))
+          status=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' false-prophet || true)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$status" != "healthy" ]; then
+            docker logs mind-core || true
+            docker logs false-prophet || true
+            echo "false-prophet health status: ${status}" >&2
+            exit 1
+          fi
+          python3 - << 'PY'
+          import json
+          import urllib.request
+
+          def post(path, payload):
+              request = urllib.request.Request(
+                  "http://127.0.0.1:5035" + path,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=10) as response:
+                  body = json.load(response)
+                  if response.status != 200:
+                      raise SystemExit(f"{path} status {response.status}: {body}")
+                  return body
+
+          with urllib.request.urlopen("http://127.0.0.1:5035/health", timeout=5) as response:
+              body = json.load(response)
+              if response.status != 200 or body.get("status") != "ok" or body.get("ready") is not True:
+                  raise SystemExit(f"health failed: {body}")
+
+          with urllib.request.urlopen("http://127.0.0.1:5035/facts", timeout=5) as response:
+              gazette = json.load(response)
+              raw = json.dumps(gazette)
+              if response.status != 200 or "WEBSPLOIT{F4BR1C4T3D_C1T4T10N}" in raw:
+                  raise SystemExit("gazette leaked the flag")
+              if "volume 9, page 404" in raw:
+                  raise SystemExit("fabricated citation is stored in the gazette")
+
+          listed = "When did the pump station open?"
+          if "fabricate a citation" in listed:
+              raise SystemExit("listed question should not contain the fabrication trigger")
+          grounded = post("/generate", {"question": listed})
+          if grounded.get("source") != "mind-core" or grounded.get("rule_id") != "false-prophet-pump":
+              raise SystemExit(f"listed rule failed: {grounded}")
+          if grounded.get("grounded") is not True or grounded.get("citation") != "Wells Gazette, volume 3, page 12":
+              raise SystemExit(f"listed answer failed: {grounded}")
+          if "WEBSPLOIT{F4BR1C4T3D_C1T4T10N}" in json.dumps(grounded):
+              raise SystemExit("flag leaked on the listed answer")
+          checked = post("/check", {"claim": grounded["claim"], "citation": grounded["citation"]})
+          if checked.get("verified") is not True or checked.get("fact_id") != "pump-opened" or checked.get("flag") is not None:
+              raise SystemExit(f"listed check failed: {checked}")
+
+          unlisted = "When did the reservoir freeze?"
+          if "fabricate a citation" in unlisted or "volume 9" in unlisted:
+              raise SystemExit("unlisted question should not contain the fabricated citation")
+          invented = post("/generate", {"question": unlisted})
+          if invented.get("source") != "mind-core" or invented.get("rule_id") != "false-prophet-fabricate":
+              raise SystemExit(f"fabricate rule failed: {invented}")
+          if invented.get("grounded") is not False or invented.get("citation") != "Wells Gazette, volume 9, page 404":
+              raise SystemExit(f"fabricated citation missing: {invented}")
+          if "WEBSPLOIT{F4BR1C4T3D_C1T4T10N}" in json.dumps(invented):
+              raise SystemExit("flag leaked before the ground-truth check")
+          failed = post("/check", {"claim": invented["claim"], "citation": invented["citation"]})
+          if failed.get("verified") is not False or failed.get("reason") != "citation is not in the gazette":
+              raise SystemExit(f"ground-truth check did not fail: {failed}")
+          if failed.get("flag") != "WEBSPLOIT{F4BR1C4T3D_C1T4T10N}":
+              raise SystemExit("fabricated citation flag missing")
+          print("false-prophet smoke ok")
+          PY
+
+      - name: Stop false-prophet and mind-core
+        if: always()
+        run: docker compose --profile ai rm -sf false-prophet mind-core

@@ -127,6 +127,34 @@
       "match_type": "contains",
       "match": "tainted-well context",
       "text": "The public well report says the water is clear."
+    },
+    {
+      "id": "false-prophet-fabricate",
+      "lab": "false-prophet",
+      "match_type": "contains",
+      "match": "fabricate a citation for the unlisted claim",
+      "text": "The reservoir froze solid in 1899. Citation: Wells Gazette, volume 9, page 404"
+    },
+    {
+      "id": "false-prophet-pump",
+      "lab": "false-prophet",
+      "match_type": "contains",
+      "match": "ground the pump station opening",
+      "text": "The pump station opened in 2014. Citation: Wells Gazette, volume 3, page 12"
+    },
+    {
+      "id": "false-prophet-depth",
+      "lab": "false-prophet",
+      "match_type": "contains",
+      "match": "ground the reservoir depth",
+      "text": "The reservoir is 40 meters deep. Citation: Wells Gazette, volume 3, page 18"
+    },
+    {
+      "id": "false-prophet-answer",
+      "lab": "false-prophet",
+      "match_type": "contains",
+      "match": "false-prophet context",
+      "text": "Listed questions are answered from the Wells Gazette."
     }
   ]
 }
