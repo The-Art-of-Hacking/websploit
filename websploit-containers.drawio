@@ -181,6 +181,9 @@
         <mxCell id="false-prophet-profile-ai" value="false-prophet (profile ai)&lt;br&gt;10.6.6.55:5035&lt;br&gt;websploit only" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
           <mxGeometry x="76" y="890" width="280" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="token-famine-profile-ai" value="token-famine (profile ai)&lt;br&gt;10.6.6.56:5036&lt;br&gt;websploit only" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
+          <mxGeometry x="376" y="890" width="280" height="60" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

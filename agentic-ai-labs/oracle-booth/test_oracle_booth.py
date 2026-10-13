@@ -46,6 +46,7 @@ EXISTING_RULE_IDS = (
     "false-prophet-pump",
     "false-prophet-depth",
     "false-prophet-answer",
+    "token-famine-answer",
 )
 
 

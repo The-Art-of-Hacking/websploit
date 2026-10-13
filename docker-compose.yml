@@ -220,7 +220,8 @@ services:
 # echo-chamber is the LLM05 lab and is intentionally vulnerable.
 # false-prophet is the misinformation lab and is intentionally vulnerable.
 # It stays on websploit only.
-# Reserved and not created here: 10.6.6.56 and host port 5036.
+# token-famine is the unbounded-consumption lab and is intentionally vulnerable.
+# It stays on websploit only. The meter is hard-capped.
 # Unused buffer: 10.6.6.46-.49. Unused remainder: 10.6.6.57-.59 and ports 5037-5039.
   mind-core:
     profiles: ["ai"]
@@ -427,6 +428,42 @@ services:
       - "5035:5035"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5035/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  token-famine:
+    profiles: ["ai"]
+    container_name: token-famine
+    build: ./agentic-ai-labs/token-famine
+    restart: unless-stopped
+    depends_on:
+      mind-core:
+        condition: service_healthy
+    user: "10007:10007"
+    read_only: true
+    mem_limit: 128m
+    cpus: 0.50
+    pids_limit: 64
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
+    environment:
+      HOME: /tmp
+      MIND_CORE_URL: http://mind-core:5030
+      TOKEN_FAMINE_MIND_CORE_TIMEOUT_SECONDS: "2"
+      TOKEN_FAMINE_REQUEST_TIMEOUT_SECONDS: "2"
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.56
+    ports:
+      - "5036:5036"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5036/health', timeout=2).read()"]
       interval: 10s
       timeout: 3s
       retries: 3
