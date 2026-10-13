@@ -1,0 +1,3 @@
+# oracle-booth has no third-party Python dependencies.
+# The interpreter pin is the digest on the base image in the Dockerfile.
+# Retrieval and the chat API use the Python standard library.

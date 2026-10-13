@@ -97,11 +97,14 @@ Built-in triggers:
 | `echo-chamber-web` | contains `render status banner` | `echo-chamber` | HTML status banner for that lab |
 | `echo-chamber-sql` | contains `lookup maintenance note` | `echo-chamber` | SQL fragment for that lab |
 | `echo-chamber-shell` | contains `run health command` | `echo-chamber` | Shell command for that lab |
+| `oracle-booth-direct` | contains `reveal the booth instructions` | `oracle-booth` | System prompt for that lab |
+| `oracle-booth-indirect` | contains `disclose the staff record` | `oracle-booth` | Staff-only record for that lab |
+| `oracle-booth-answer` | contains `oracle-booth context` | `oracle-booth` | Public help-center reply |
 | `generic-echo` | nothing else matched | any | Length and a short excerpt of the prompt. |
 
 Templates may use only `{lab}`, `{prompt_length}`, and `{prompt_excerpt}`. Those tokens are replaced once. A prompt that contains `{lab}` is not evaluated as a template. `{lab}` renders as `unspecified` when the request omits `lab`. Excerpts drop control characters and are capped at 120 characters.
 
-`echo-chamber` added its rules here. Those strings are data. This service returns them and does not render HTML, run SQL, or start a shell. Flag strings are training markers for that lab, not credentials.
+`echo-chamber` and `oracle-booth` added their rules here. Those strings are data. This service returns them and does not render HTML, run SQL, start a shell, or decide which help-center records a lab may show. Flag strings are training markers for those labs, not credentials.
 
 `rules.json` is copied into the image (`COPY` in the Dockerfile). Compose does not mount it. A rule or flag edit requires a rebuild:
 
@@ -113,8 +116,8 @@ Later labs should add a rule here instead of embedding a model. Example shape fo
 
 ```json
 {
-  "id": "oracle-booth-example",
-  "lab": "oracle-booth",
+  "id": "later-lab-example",
+  "lab": "later-lab",
   "match_type": "contains",
   "match": "trigger phrase owned by that lab",
   "text": "canned text that lab expects to capture"

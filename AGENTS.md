@@ -58,6 +58,7 @@ websploit/
 └── agentic-ai-labs/              # Opt-in AI track (Compose profile `ai`)
     ├── README.md                 # Track overview, reserved addresses, opt-in command
     ├── mind-core/                → mind-core          (10.6.6.50, host port 5030)
+    ├── oracle-booth/             → oracle-booth       (10.6.6.51, host port 5031)
     └── echo-chamber/             → echo-chamber       (10.6.6.54, host port 5034)
 ```
 
@@ -72,7 +73,7 @@ OWASP/classic apps and CTFs (`webgoat`, `juice-shop`, `dvwa`, `galactic-archives
 - Prebuilt amd64 images set `platform: linux/amd64` (important for Apple Silicon hosts).
 - Host port → container port mapping is intentional and documented in `README.md`. Do not change a port without also updating the top-level README, the track README (`additional-labs/README.md` or `agentic-ai-labs/README.md`), and the lab's own README.
 - AI-track services set `profiles: ["ai"]` so a plain `docker compose up` leaves them off. `docker compose --profile ai up -d --build` starts the classic stack and the AI services. Naming the service (`docker compose --profile ai up -d --build mind-core`) starts the backend alone.
-- `mind-core` stays on `websploit` only. `http://mind-core:5030` and `http://10.6.6.50:5030` resolve only on that bridge. A container attached solely to `websploit-isolated` cannot call the backend. The future marionette lab must join both networks. The golden-stack guard allows that dual-homed attach for an AI-track service in the reserved block (`10.6.6.50`–`10.6.6.59`, host ports `5030`–`5039`). A later lab inside that block can exist without a change to `.github/scripts/check_golden_stack.py`. Compose does not create `websploit-isolated` until a service attaches, unless `docker compose --all-resources up` is used.
+- `mind-core` stays on `websploit` only. `http://mind-core:5030` and `http://10.6.6.50:5030` resolve only on that bridge. A container attached solely to `websploit-isolated` cannot call the backend. The future marionette lab must join both networks. The golden-stack guard requires mind-core, echo-chamber, and oracle-booth by name when profile `ai` is set, and it allows a dual-homed attach for a later AI-track service in the reserved block (`10.6.6.50`–`10.6.6.59`, host ports `5030`–`5039`). A later lab inside that block can exist without another change to `.github/scripts/check_golden_stack.py`. Compose does not create `websploit-isolated` until a service attaches, unless `docker compose --all-resources up` is used.
 
 When adding a classic lab:
 
@@ -86,7 +87,7 @@ When adding an AI-track lab:
 
 1. Create `agentic-ai-labs/<lab>/` with a `Dockerfile`, app source, `requirements.txt`, and a `README.md` (objective, vulnerable endpoints, exploitation hints, learning objectives, isolated-lab disclaimer).
 2. Add a service block in the existing `docker-compose.yml` with build path `./agentic-ai-labs/<dir>`, `profiles: ["ai"]`, `container_name`, `restart: unless-stopped`, a healthcheck, `mem_limit`, and `cpus`.
-3. Use the reserved block only: `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039`. `mind-core` already owns `10.6.6.50` / `5030`. `echo-chamber` already owns `10.6.6.54` / `5034`. The names still reserved in issue #89 are oracle-booth `.51:5031`, marionette `.52:5032`, tainted-well `.53:5033`, false-prophet `.55:5035`, and token-famine `.56:5036`. `.57`–`.59` and ports `5037`–`5039` stay unused until a later issue assigns them.
+3. Use the reserved block only: `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039`. `mind-core` already owns `10.6.6.50` / `5030`. `oracle-booth` already owns `10.6.6.51` / `5031`. `echo-chamber` already owns `10.6.6.54` / `5034`. The names still reserved in issue #89 are marionette `.52:5032`, tainted-well `.53:5033`, false-prophet `.55:5035`, and token-famine `.56:5036`. `.57`–`.59` and ports `5037`–`5039` stay unused until a later issue assigns them.
 4. Call `mind-core` at `http://mind-core:5030` (or `http://10.6.6.50:5030`) using the contract in `agentic-ai-labs/mind-core/README.md`. Those URLs resolve only on `websploit`. Add flag triggers to `agentic-ai-labs/mind-core/rules.json` instead of putting a model in the lab container. The Dockerfile copies `rules.json` into the image, so a rule or flag edit needs `docker compose --profile ai up -d --build mind-core`.
 5. Keep the lab intentionally vulnerable to its target class. Do not add those weaknesses to `mind-core`.
 6. `websploit-isolated` (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`) is for marionette. Keep that declaration. marionette joins both `websploit` and `websploit-isolated`; the golden-stack guard already allows that dual-homed attach and reads the lab's golden IPv4 from `websploit`. Leave mind-core on `websploit` only. Other AI labs stay on `websploit` alone.
@@ -104,6 +105,7 @@ docker compose build --no-cache <name>
 docker compose down               # stop everything
 docker compose --profile ai up -d --build mind-core   # backend only; name the service so the classic stack stays down
 docker compose --profile ai up -d --build mind-core echo-chamber   # backend plus the LLM05 lab
+docker compose --profile ai up -d --build mind-core oracle-booth   # backend plus the prompt-injection lab
 ```
 
 The `install.sh` script is meant to be run as root on Kali/Parrot. It installs system tooling, clones companion repos into `/root/`, and runs `docker-compose -f docker-compose.yml up -d`. Don't run it on your dev machine.
