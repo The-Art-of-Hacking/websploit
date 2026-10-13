@@ -216,7 +216,8 @@ services:
 # marionette is the excessive-agency lab and is intentionally vulnerable.
 # It joins websploit and websploit-isolated. No other service joins the isolated network.
 # echo-chamber is the LLM05 lab and is intentionally vulnerable.
-# Reserved and not created here: 10.6.6.53, 10.6.6.55-.56 and host ports 5033, 5035-5036.
+# tainted-well is the LLM03/LLM04/LLM08 pipeline lab and is intentionally vulnerable.
+# Reserved and not created here: 10.6.6.55-.56 and host ports 5035-5036.
 # Unused buffer: 10.6.6.46-.49. Unused remainder: 10.6.6.57-.59 and ports 5037-5039.
   mind-core:
     profiles: ["ai"]
@@ -353,6 +354,41 @@ services:
       - "5034:5034"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5034/health', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  tainted-well:
+    profiles: ["ai"]
+    container_name: tainted-well
+    build: ./agentic-ai-labs/tainted-well
+    restart: unless-stopped
+    depends_on:
+      mind-core:
+        condition: service_healthy
+    user: "10005:10005"
+    read_only: true
+    mem_limit: 128m
+    cpus: 0.50
+    pids_limit: 64
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
+    environment:
+      HOME: /tmp
+      MIND_CORE_URL: http://mind-core:5030
+      TAINTED_WELL_MIND_CORE_TIMEOUT_SECONDS: "2"
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.53
+    ports:
+      - "5033:5033"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5033/health', timeout=2).read()"]
       interval: 10s
       timeout: 3s
       retries: 3
