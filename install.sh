@@ -24,7 +24,53 @@
 # Web: https://websploit.org
 # X: @santosomar LinkedIn: https://linkedin.com/in/santosomar
 # Version: 5.0
+#
+# Usage: sudo ./install.sh [--with-ai]
+#   (no flag)  Classic stack only: docker-compose -f docker-compose.yml up -d
+#   --with-ai  Also enable Compose profile ai. Does not download model weights
+#              and does not enable profile ai-model. The local-model profile
+#              stays a separate manual opt-in.
+# These containers are intentionally vulnerable and must only run in an
+# isolated, non-production environment.
 
+usage() {
+    cat <<'EOF'
+Usage: sudo ./install.sh [--with-ai]
+
+Install WebSploit Labs on a Debian-family host (Kali or Parrot). This script is
+interactive and must run as root. These containers are intentionally vulnerable
+and must only run in an isolated, non-production environment.
+
+With no flag, profiled services stay off and the installer runs:
+  docker-compose -f docker-compose.yml up -d
+
+  --with-ai   Also enable Compose profile ai (mind-core and the AI labs).
+              This does not download model weights and does not enable
+              profile ai-model. The local-model profile stays a separate
+              manual opt-in:
+                docker compose --profile ai --profile ai-model up -d --build mind-core model-fetch local-gguf
+  -h, --help  Show this help and exit.
+EOF
+}
+
+# Allow-list only. The selected flag never becomes part of a shell command.
+WITH_AI=0
+for arg in "$@"; do
+    case "${arg}" in
+        --with-ai)
+            WITH_AI=1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: ${arg}" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
 
 clear
 
@@ -67,6 +113,13 @@ print_banner() {
     # Description in standard text
     echo " This script will install the tools, configurations, and Docker"
     echo " containers required for the WebSploit Labs learning environment."
+    if [[ "${WITH_AI}" -eq 1 ]]; then
+        echo # Blank line
+        echo " --with-ai is set. Compose profile ai starts with the classic stack."
+        echo " Model weights stay off. Profile ai-model stays a separate manual opt-in."
+        echo " These containers are intentionally vulnerable. Run them only in an"
+        echo " isolated, non-production environment."
+    fi
     echo # Blank line
     echo "----------------------------------------------------------------------"
     echo # Blank line
@@ -172,7 +225,15 @@ echo "[+] Using docker-compose.yml from websploit.git"
 
 echo "[+] Starting containers..."
 cd /root/websploit
-docker-compose -f docker-compose.yml up -d
+if [[ "${WITH_AI}" -eq 0 ]]; then
+    docker-compose -f docker-compose.yml up -d
+else
+    echo "[+] Enabling Compose profile ai only."
+    echo "[+] Model weights stay off. Profile ai-model stays a separate manual opt-in."
+    echo "[!] These containers are intentionally vulnerable and must only run in an isolated, non-production environment."
+    # Replace any inherited COMPOSE_PROFILES so this flag cannot enable ai-model.
+    COMPOSE_PROFILES=ai docker-compose --profile ai -f docker-compose.yml up -d
+fi
 
 
 #--------------------------------------------------
