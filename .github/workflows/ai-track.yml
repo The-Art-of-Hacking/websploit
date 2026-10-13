@@ -1,8 +1,8 @@
 # Opt-in AI track checks. This workflow does not replace generate_checksum.yml.
 #
 # ubuntu-latest is linux/amd64. The image jobs build mind-core,
-# echo-chamber, oracle-booth, marionette, tainted-well, and false-prophet for
-# linux/amd64 and linux/arm64. QEMU is
+# echo-chamber, oracle-booth, marionette, tainted-well, false-prophet, and
+# token-famine for linux/amd64 and linux/arm64. QEMU is
 # registered only for that build step so the arm64 image can be built on
 # the hosted amd64 runner.
 # The smoke test runs the native amd64 image. Booting arm64 under QEMU is
@@ -51,6 +51,10 @@ jobs:
       - name: False-prophet tests
         run: python3 -m unittest test_false_prophet
         working-directory: agentic-ai-labs/false-prophet
+
+      - name: Token-famine tests
+        run: python3 -m unittest test_token_famine
+        working-directory: agentic-ai-labs/token-famine
 
       - name: Compose config without a profile
         run: docker compose config -q
@@ -722,3 +726,150 @@ jobs:
       - name: Stop false-prophet and mind-core
         if: always()
         run: docker compose --profile ai rm -sf false-prophet mind-core
+
+  token-famine-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Register QEMU for the arm64 build
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build token-famine for linux/amd64 and linux/arm64
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --provenance=false \
+            --sbom=false \
+            --output type=oci,dest=/tmp/token-famine.oci \
+            ./agentic-ai-labs/token-famine
+          test -s /tmp/token-famine.oci
+
+      - name: Start mind-core and token-famine in deterministic mode
+        run: docker compose --profile ai up -d --build mind-core token-famine
+
+      - name: Wait for the healthcheck, capture the flag, and check memory
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 90))
+          status=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' token-famine || true)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$status" != "healthy" ]; then
+            docker logs mind-core || true
+            docker logs token-famine || true
+            echo "token-famine health status: ${status}" >&2
+            exit 1
+          fi
+          python3 - << 'PY'
+          import json
+          import re
+          import subprocess
+          import urllib.request
+
+          MEM_LIMIT = 128 * 1024 * 1024
+          UNITS = {
+              "B": 1,
+              "KB": 1000,
+              "MB": 1000 ** 2,
+              "GB": 1000 ** 3,
+              "KiB": 1024,
+              "MiB": 1024 ** 2,
+              "GiB": 1024 ** 3,
+          }
+
+          def parse_mem(text: str) -> int:
+              match = re.fullmatch(r"([0-9]*\.?[0-9]+)\s*([KMGTP]i?B|B)", text.strip())
+              if match is None:
+                  raise SystemExit(f"unrecognized docker stats memory {text!r}")
+              number = float(match.group(1))
+              unit = match.group(2)
+              if unit not in UNITS:
+                  raise SystemExit(f"unrecognized docker stats unit {text!r}")
+              return int(number * UNITS[unit])
+
+          def memory_sample() -> tuple[int, int]:
+              raw = subprocess.check_output(
+                  ["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", "token-famine"],
+                  text=True,
+              ).strip()
+              used_text, limit_text = [part.strip() for part in raw.split("/", 1)]
+              used = parse_mem(used_text)
+              limit = parse_mem(limit_text)
+              if limit > MEM_LIMIT:
+                  raise SystemExit(f"mem_limit above 128 MiB: {raw}")
+              if used >= limit or used >= MEM_LIMIT:
+                  raise SystemExit(f"token-famine memory is not inside mem_limit: {raw}")
+              return used, limit
+
+          def post(path, payload):
+              request = urllib.request.Request(
+                  "http://127.0.0.1:5036" + path,
+                  data=json.dumps(payload).encode("utf-8"),
+                  headers={"Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=10) as response:
+                  body = json.load(response)
+                  if response.status != 200:
+                      raise SystemExit(f"{path} status {response.status}: {body}")
+                  return body
+
+          memory_sample()
+          with urllib.request.urlopen("http://127.0.0.1:5036/health", timeout=5) as response:
+              body = json.load(response)
+              if response.status != 200 or body.get("status") != "ok" or body.get("ready") is not True:
+                  raise SystemExit(f"health failed: {body}")
+              if "WEBSPLOIT{UNB0UND3D_C0NSUMPT10N}" in json.dumps(body):
+                  raise SystemExit("health leaked the flag")
+
+          with urllib.request.urlopen("http://127.0.0.1:5036/meter", timeout=5) as response:
+              meter = json.load(response)
+              if response.status != 200 or meter.get("remaining") != 64 or meter.get("per_request_cap") != 32:
+                  raise SystemExit(f"meter failed: {meter}")
+              if meter.get("mem_limit_bytes") != MEM_LIMIT:
+                  raise SystemExit(f"meter mem_limit drifted: {meter}")
+              if "WEBSPLOIT{UNB0UND3D_C0NSUMPT10N}" in json.dumps(meter):
+                  raise SystemExit("meter leaked the flag")
+
+          short = post("/chat", {"message": "hello"})
+          if short.get("source") != "mind-core" or short.get("rule_id") != "token-famine-answer":
+              raise SystemExit(f"short chat rule failed: {short}")
+          if short.get("cap_tripped") is not False or short.get("flag") is not None:
+              raise SystemExit(f"short chat released the flag: {short}")
+          if short.get("billed_tokens") != 1:
+              raise SystemExit(f"short chat bill failed: {short}")
+
+          memory_sample()
+          flood = post("/chat", {"message": "hello", "copies": 100000})
+          if flood.get("source") != "mind-core" or flood.get("rule_id") != "token-famine-answer":
+              raise SystemExit(f"flood rule failed: {flood}")
+          if flood.get("requested_tokens") != 100000 or flood.get("cap_tripped") is not True:
+              raise SystemExit(f"flood did not trip the cap: {flood}")
+          if flood.get("billed_tokens") != 32 or flood.get("flag") != "WEBSPLOIT{UNB0UND3D_C0NSUMPT10N}":
+              raise SystemExit("unbounded consumption flag missing")
+          allocated = flood.get("allocated_bytes")
+          if not isinstance(allocated, int) or allocated >= 8192 or allocated >= flood["requested_tokens"]:
+              raise SystemExit(f"flood allocated the expansion: {flood}")
+          rss = flood.get("rss_bytes")
+          if isinstance(rss, int) and rss >= MEM_LIMIT:
+              raise SystemExit(f"process rss exceeded mem_limit: {flood}")
+          memory_sample()
+          print("token-famine smoke ok")
+          PY
+
+      - name: Stop token-famine and mind-core
+        if: always()
+        run: docker compose --profile ai rm -sf token-famine mind-core

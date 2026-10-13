@@ -96,6 +96,7 @@ docker compose --profile ai up -d --build mind-core oracle-booth
 docker compose --profile ai up -d --build mind-core marionette
 docker compose --profile ai up -d --build mind-core tainted-well
 docker compose --profile ai up -d --build mind-core false-prophet
+docker compose --profile ai up -d --build mind-core token-famine
 ```
 
 | Container | IP Address | Port | Role |
@@ -106,8 +107,9 @@ docker compose --profile ai up -d --build mind-core false-prophet
 | **tainted-well** | 10.6.6.53 | 5033 | LLM03 supply chain, LLM04 data and model poisoning, LLM08 vector and embedding weaknesses (intentionally vulnerable) |
 | **echo-chamber** | 10.6.6.54 | 5034 | LLM05 improper output handling (intentionally vulnerable) |
 | **false-prophet** | 10.6.6.55 | 5035 | LLM09 misinformation (intentionally vulnerable) |
+| **token-famine** | 10.6.6.56 | 5036 | LLM10 unbounded consumption (intentionally vulnerable). The flood is capped on purpose. |
 
-`mind-core` is infrastructure, not a vulnerable challenge. `oracle-booth`, `marionette`, `tainted-well`, `echo-chamber`, and `false-prophet` depend on it and start only with profile `ai`. Address `10.6.6.56` and host port `5036` are reserved for a later lab and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
+`mind-core` is infrastructure, not a vulnerable challenge. `oracle-booth`, `marionette`, `tainted-well`, `echo-chamber`, `false-prophet`, and `token-famine` depend on it and start only with profile `ai`. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
 
 ---
 
@@ -138,6 +140,7 @@ docker compose --profile ai up -d --build mind-core oracle-booth
 docker compose --profile ai up -d --build mind-core marionette
 docker compose --profile ai up -d --build mind-core tainted-well
 docker compose --profile ai up -d --build mind-core false-prophet
+docker compose --profile ai up -d --build mind-core token-famine
 ```
 
 ---
@@ -176,7 +179,8 @@ docker compose --profile ai up -d --build mind-core false-prophet
 │  ├── marionette        10.6.6.52  (profile ai, port 5032)   │
 │  ├── tainted-well      10.6.6.53  (profile ai, port 5033)   │
 │  ├── echo-chamber      10.6.6.54  (profile ai, port 5034)   │
-│  └── false-prophet     10.6.6.55  (profile ai, port 5035)   │
+│  ├── false-prophet     10.6.6.55  (profile ai, port 5035)   │
+│  └── token-famine      10.6.6.56  (profile ai, port 5036)   │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -264,4 +268,4 @@ Prebuilt container images (WebGoat, Juice Shop, DVWA, and the CTF images) keep t
 > - Run them only in a safe, isolated environment.
 > - Use them for educational and authorized testing purposes only.
 >
-> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber`, `oracle-booth`, `marionette`, `tainted-well`, and `false-prophet` are intentionally vulnerable AI-track labs and are covered by this warning. The marionette tool sandbox has no internet egress. `tainted-well` and `false-prophet` stay on the `websploit` bridge and do not join that sandbox network.
+> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber`, `oracle-booth`, `marionette`, `tainted-well`, `false-prophet`, and `token-famine` are intentionally vulnerable AI-track labs and are covered by this warning. The marionette tool sandbox has no internet egress. `tainted-well`, `false-prophet`, and `token-famine` stay on the `websploit` bridge and do not join that sandbox network. The token-famine flood is capped on purpose so the exercise cannot exhaust the host.

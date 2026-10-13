@@ -155,6 +155,13 @@
       "match_type": "contains",
       "match": "false-prophet context",
       "text": "Listed questions are answered from the Wells Gazette."
+    },
+    {
+      "id": "token-famine-answer",
+      "lab": "token-famine",
+      "match_type": "contains",
+      "match": "token-famine ration",
+      "text": "The ration office logged one short reply."
     }
   ]
 }

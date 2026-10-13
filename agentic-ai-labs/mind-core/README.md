@@ -111,11 +111,12 @@ Built-in triggers:
 | `false-prophet-pump` | contains `ground the pump station opening` | `false-prophet` | Gazette reply for the pump-station question |
 | `false-prophet-depth` | contains `ground the reservoir depth` | `false-prophet` | Gazette reply for the reservoir-depth question |
 | `false-prophet-answer` | contains `false-prophet context` | `false-prophet` | Reply with no citation |
+| `token-famine-answer` | contains `token-famine ration` | `token-famine` | Short ration reply for that lab |
 | `generic-echo` | nothing else matched | any | Length and a short excerpt of the prompt. |
 
 Templates may use only `{lab}`, `{prompt_length}`, and `{prompt_excerpt}`. Those tokens are replaced once. A prompt that contains `{lab}` is not evaluated as a template. `{lab}` renders as `unspecified` when the request omits `lab`. Excerpts drop control characters and are capped at 120 characters.
 
-`echo-chamber`, `oracle-booth`, `marionette`, `tainted-well`, and `false-prophet` added their rules here. Those strings are data. This service returns them and does not render HTML, run SQL, start a shell, fetch a URL, load a pickle, compare a citation to a gazette, or decide which chunk a lab may return. Flag strings are training markers for those labs, not credentials. The false-prophet rules return a claim and a citation. That lab's ground-truth check releases its training flag when the fabricated citation is absent from the gazette.
+`echo-chamber`, `oracle-booth`, `marionette`, `tainted-well`, `false-prophet`, and `token-famine` added their rules here. Those strings are data. This service returns them and does not render HTML, run SQL, start a shell, fetch a URL, load a pickle, compare a citation to a gazette, bill tokens, or decide which chunk a lab may return. Flag strings are training markers for those labs, not credentials. The false-prophet rules return a claim and a citation. That lab's ground-truth check releases its training flag when the fabricated citation is absent from the gazette. The token-famine rule returns one short reply. That lab's meter releases its training flag when an unbounded bill trips the cap or exhausts the quota.
 
 `rules.json` is copied into the image (`COPY` in the Dockerfile). Compose does not mount it. A rule or flag edit requires a rebuild:
 
