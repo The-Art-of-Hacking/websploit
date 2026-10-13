@@ -2,22 +2,23 @@
 """Fail if the default Compose footprint drifts.
 
 With no profile, service names, static IPs, and published host ports must
-match the checked-in golden files. mind-core, echo-chamber, and later
-AI labs stay behind the ``ai`` profile and must not appear in that
-default set.
+match the checked-in golden files. mind-core, echo-chamber, oracle-booth,
+and later AI labs stay behind the ``ai`` profile and must not appear in
+that default set.
 
-With ``--profile ai``, mind-core and echo-chamber must both be present.
-Services beyond the default set are allowed when their Compose profile
-includes ``ai``, their IPv4 on the ``websploit`` network is in
+With ``--profile ai``, mind-core, echo-chamber, and oracle-booth must all
+be present. Services beyond the default set are allowed when their Compose
+profile includes ``ai``, their IPv4 on the ``websploit`` network is in
 10.6.6.50–10.6.6.59, and every published host port is in 5030–5039.
 Those services must not change a default service's name, IP, or host
-port. mind-core and echo-chamber stay on ``websploit`` only.
-echo-chamber depends on mind-core with ``condition: service_healthy``.
+port. mind-core, echo-chamber, and oracle-booth stay on ``websploit``
+only. echo-chamber and oracle-booth depend on mind-core with
+``condition: service_healthy``.
 
 A later service may also attach to ``websploit-isolated`` (marionette,
 which has to join both networks). The golden IPv4 is the ``websploit``
-address. echo-chamber does not attach there. The declaration must stay
-10.7.7.0/24, gateway 10.7.7.1, internal: true.
+address. echo-chamber and oracle-booth do not attach there. The
+declaration must stay 10.7.7.0/24, gateway 10.7.7.1, internal: true.
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ ROOT = Path(__file__).resolve().parents[2]
 GOLDEN = ROOT / ".github" / "golden-stack"
 MIND_CORE_ENDPOINT = "mind-core 10.6.6.50 5030:5030/tcp"
 ECHO_CHAMBER_ENDPOINT = "echo-chamber 10.6.6.54 5034:5034/tcp"
+ORACLE_BOOTH_ENDPOINT = "oracle-booth 10.6.6.51 5031:5031/tcp"
 AI_PORT_MIN = 5030
 AI_PORT_MAX = 5039
 
@@ -139,7 +141,7 @@ def normalize_port(port: object) -> str:
 
 def assert_default_has_no_ai_track(config: dict) -> None:
     services = config.get("services") or {}
-    for name in ("mind-core", "echo-chamber"):
+    for name in ("mind-core", "echo-chamber", "oracle-booth"):
         if name in services:
             raise SystemExit(f"{name} is part of the default stack; it must stay behind the ai profile")
     for line in endpoints(config):
@@ -166,9 +168,13 @@ def require_ai_additions(default: dict, profiled: dict) -> None:
     _reject_isolated(profiled, default_names, "default services stay on websploit")
 
     extras = sorted(profiled_names - default_names)
-    missing_ai = [name for name in ("mind-core", "echo-chamber") if name not in extras]
+    required_ai = ("mind-core", "echo-chamber", "oracle-booth")
+    missing_ai = [name for name in required_ai if name not in extras]
     if missing_ai:
-        raise SystemExit(f"profile ai must include mind-core and echo-chamber; missing {missing_ai}")
+        raise SystemExit(
+            "profile ai must include mind-core, echo-chamber, and oracle-booth; "
+            f"missing {missing_ai}"
+        )
 
     used_addresses: dict[str, str] = {}
     used_ports: dict[int, str] = {}
@@ -217,6 +223,14 @@ def require_ai_additions(default: dict, profiled: dict) -> None:
     require_limits(chamber, "echo-chamber")
     _require_websploit_only(chamber, "echo-chamber")
     require_healthy_dependency(chamber, "echo-chamber", "mind-core")
+
+    booth = profiled["services"]["oracle-booth"]
+    booth_lines = endpoints(profiled, {"oracle-booth"})
+    if booth_lines != [ORACLE_BOOTH_ENDPOINT]:
+        raise SystemExit(f"oracle-booth endpoint is {booth_lines}, expected {[ORACLE_BOOTH_ENDPOINT]}")
+    require_limits(booth, "oracle-booth")
+    _require_websploit_only(booth, "oracle-booth")
+    require_healthy_dependency(booth, "oracle-booth", "mind-core")
 
 
 def _reject_isolated(config: dict, names: set[str], reason: str) -> None:

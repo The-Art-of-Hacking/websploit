@@ -87,19 +87,21 @@ Custom-built labs focusing on specific vulnerability categories. These labs are 
 
 #### Opt-in AI track (Compose profile `ai`)
 
-`docker compose up` does not start this track. `docker compose --profile ai up -d --build` starts the classic stack and the AI services. To build and start just the shared backend, or the backend plus echo-chamber, activate the profile and name the services:
+`docker compose up` does not start this track. `docker compose --profile ai up -d --build` starts the classic stack and the AI services. To build and start just the shared backend, or the backend plus one lab, activate the profile and name the services:
 
 ```bash
 docker compose --profile ai up -d --build mind-core
 docker compose --profile ai up -d --build mind-core echo-chamber
+docker compose --profile ai up -d --build mind-core oracle-booth
 ```
 
 | Container | IP Address | Port | Role |
 | --- | --- | --- | --- |
 | **mind-core** | 10.6.6.50 | 5030 | Shared deterministic backend for the AI track |
+| **oracle-booth** | 10.6.6.51 | 5031 | LLM01 prompt injection, LLM02 sensitive disclosure, LLM07 system prompt leakage (intentionally vulnerable) |
 | **echo-chamber** | 10.6.6.54 | 5034 | LLM05 improper output handling (intentionally vulnerable) |
 
-`mind-core` is infrastructure, not a vulnerable challenge. `echo-chamber` depends on it and starts only with profile `ai`. Addresses `10.6.6.51`–`10.6.6.53`, `10.6.6.55`–`10.6.6.56`, and host ports `5031`–`5033` and `5035`–`5036` are reserved for later labs and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
+`mind-core` is infrastructure, not a vulnerable challenge. `oracle-booth` and `echo-chamber` depend on it and start only with profile `ai`. Addresses `10.6.6.52`–`10.6.6.53`, `10.6.6.55`–`10.6.6.56`, and host ports `5032`–`5033` and `5035`–`5036` are reserved for later labs and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
 
 ---
 
@@ -124,8 +126,9 @@ docker compose down
 # Rebuild specific containers
 docker compose build --no-cache [container_name]
 
-# Start mind-core and echo-chamber. Naming the services leaves the classic stack down.
+# Start mind-core and one AI lab. Naming the services leaves the classic stack down.
 docker compose --profile ai up -d --build mind-core echo-chamber
+docker compose --profile ai up -d --build mind-core oracle-booth
 ```
 
 ---
@@ -160,6 +163,7 @@ docker compose --profile ai up -d --build mind-core echo-chamber
 │  ├── graphql-galaxy    10.6.6.44                            │
 │  ├── proto-pollute     10.6.6.45                            │
 │  ├── mind-core         10.6.6.50  (profile ai, port 5030)   │
+│  ├── oracle-booth      10.6.6.51  (profile ai, port 5031)   │
 │  └── echo-chamber      10.6.6.54  (profile ai, port 5034)   │
 └─────────────────────────────────────────────────────────────┘
 
@@ -248,4 +252,4 @@ Prebuilt container images (WebGoat, Juice Shop, DVWA, and the CTF images) keep t
 > - Run them only in a safe, isolated environment.
 > - Use them for educational and authorized testing purposes only.
 >
-> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber` is an intentionally vulnerable AI-track lab and is covered by this warning.
+> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber` and `oracle-booth` are intentionally vulnerable AI-track labs and are covered by this warning.
