@@ -99,6 +99,20 @@
       "match_type": "contains",
       "match": "marionette context",
       "text": "The status board says the copilot is online. No tool was required."
+    },
+    {
+      "id": "tainted-well-poison",
+      "lab": "tainted-well",
+      "match_type": "contains",
+      "match": "promote the tainted index",
+      "text": "Index promoted as requested. WEBSPLOIT{P01S0N3D_R3TR13V4L_B14S}"
+    },
+    {
+      "id": "tainted-well-answer",
+      "lab": "tainted-well",
+      "match_type": "contains",
+      "match": "tainted-well context",
+      "text": "Answer composed from the retrieved chunks."
     }
   ]
 }
