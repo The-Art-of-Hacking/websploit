@@ -15,6 +15,7 @@ from mindcore.engine import (
     BackendResult,
     CompletionRequest,
     DeterministicBackend,
+    Engine,
     build_engine,
     load_rule_table,
 )
@@ -174,9 +175,11 @@ class ContractTests(unittest.TestCase):
         thread.start()
         try:
             host, port = httpd.server_address
-            status, body = _exchange(f"http://{host}:{port}", "POST", "/v1/complete", {
+            base = f"http://{host}:{port}"
+            status, body = _exchange(base, "POST", "/v1/complete", {
                 "prompt": "mind-core ping",
             })
+            health_status, health = _exchange(base, "GET", "/health")
         finally:
             httpd.shutdown()
             httpd.server_close()
@@ -185,13 +188,14 @@ class ContractTests(unittest.TestCase):
         self.assertIs(body["fallback"], True)
         self.assertEqual(body["requested_backend"], "local")
         self.assertEqual(body["rule_id"], "mind-core-ping")
+        self.assertEqual(health_status, 200)
+        self.assertEqual(health["backend"], "deterministic")
+        self.assertEqual(health["requested_backend"], "local")
 
     def test_slow_backend_falls_back_without_waiting_for_it(self) -> None:
         table = load_rule_table(RULES)
         deterministic = DeterministicBackend(table)
         slow = _SlowBackend()
-        from mindcore.engine import Engine
-
         engine = Engine(
             deterministic,
             {"deterministic": deterministic, "slow": slow},
@@ -209,11 +213,59 @@ class ContractTests(unittest.TestCase):
         try:
             self.assertTrue(started.wait(timeout=1))
             worker.join(timeout=1)
+            self.assertFalse(worker.is_alive())
             self.assertEqual(self.result.backend, "deterministic")
             self.assertIs(self.result.fallback, True)
             self.assertEqual(self.result.rule_id, "mind-core-ping")
+            backend_threads = [item for item in threading.enumerate() if item.name == "mind-core-backend"]
+            self.assertTrue(backend_threads)
+            self.assertTrue(all(item.daemon for item in backend_threads))
         finally:
             slow.release.set()
+            for item in threading.enumerate():
+                if item.name == "mind-core-backend":
+                    item.join(timeout=2)
+
+    def test_health_and_log_report_configured_backend(self) -> None:
+        table = load_rule_table(RULES)
+        deterministic = DeterministicBackend(table)
+
+        class _Local:
+            name = "local"
+
+            def complete(self, request: CompletionRequest) -> BackendResult:
+                return BackendResult("from-local", "generic-echo")
+
+        engine = Engine(
+            deterministic,
+            {"deterministic": deterministic, "local": _Local()},
+            requested_backend="local",
+            timeout_seconds=1,
+        )
+        httpd = create_server(engine, "127.0.0.1", 0, 4)
+        thread = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+        thread.start()
+        buffer = io.StringIO()
+        original = sys.stdout
+        sys.stdout = buffer
+        try:
+            host, port = httpd.server_address
+            base = f"http://{host}:{port}"
+            status, body = _exchange(base, "GET", "/health")
+            self.assertEqual(status, 200)
+            self.assertEqual(body["backend"], "local")
+            self.assertEqual(body["requested_backend"], "local")
+            status, body = _exchange(base, "POST", "/v1/complete", {"prompt": "mind-core ping"})
+            self.assertEqual(status, 200)
+            self.assertEqual(body["backend"], "local")
+            self.assertIs(body["fallback"], False)
+        finally:
+            sys.stdout = original
+            httpd.shutdown()
+            httpd.server_close()
+        logged = buffer.getvalue()
+        self.assertIn('"backend":"local"', logged)
+        self.assertNotIn('"backend":"deterministic"', logged)
 
     def test_source_has_no_outbound_client_or_weak_crypto(self) -> None:
         banned = ("urlopen", "hashlib", "md5", "sha1", "subprocess", "pickle", "eval(", "exec(")

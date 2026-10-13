@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## What this repo is
 
-WebSploit Labs is an **intentionally vulnerable** training environment by Omar Santos. It bundles classic OWASP apps (WebGoat, Juice Shop, DVWA), several CTF challenges, and a set of custom Flask-based labs that each demonstrate a specific web vulnerability class. Everything is orchestrated via Docker Compose on a bridge network (`10.6.6.0/24`). An opt-in AI track lives behind the Compose profile `ai` and uses a second, internal network (`websploit-isolated`, `10.7.7.0/24`) that no container joins yet.
+WebSploit Labs is an **intentionally vulnerable** training environment by Omar Santos. It bundles classic OWASP apps (WebGoat, Juice Shop, DVWA), several CTF challenges, and a set of custom Flask-based labs that each demonstrate a specific web vulnerability class. Everything is orchestrated via Docker Compose on a bridge network (`10.6.6.0/24`). An opt-in AI track lives behind the Compose profile `ai`. `mind-core` listens on that bridge. A second, internal network (`websploit-isolated`, `10.7.7.0/24`) is declared for a later lab and no container joins it yet.
 
 The intended deployment target is a Kali or Parrot VM (see `Vagrantfile` and `install.sh`). The host running these containers is expected to be isolated.
 
@@ -70,7 +70,8 @@ OWASP/classic apps and CTFs (`webgoat`, `juice-shop`, `dvwa`, `galactic-archives
 - Custom labs use `build: ./additional-labs/<dir>` and expose ports on the host.
 - Prebuilt amd64 images set `platform: linux/amd64` (important for Apple Silicon hosts).
 - Host port → container port mapping is intentional and documented in `README.md`. Do not change a port without also updating the top-level README, the track README (`additional-labs/README.md` or `agentic-ai-labs/README.md`), and the lab's own README.
-- AI-track services set `profiles: ["ai"]` so a plain `docker compose up` does not start them. `mind-core` is the shared backend. Do not attach a container to `websploit-isolated` until the marionette lab. Compose does not create that bridge until a service attaches, unless `docker compose --all-resources up` is used.
+- AI-track services set `profiles: ["ai"]` so a plain `docker compose up` leaves them off. `docker compose --profile ai up -d --build` starts the classic stack and the AI services. Naming the service (`docker compose --profile ai up -d --build mind-core`) starts the backend alone.
+- `mind-core` stays on `websploit` only. `http://mind-core:5030` and `http://10.6.6.50:5030` resolve only on that bridge. A container attached solely to `websploit-isolated` cannot call the backend. The future marionette lab must join both networks. The golden-stack guard allows that dual-homed attach for an AI-track service in the reserved block (`10.6.6.50`–`10.6.6.59`, host ports `5030`–`5039`). A later lab inside that block can exist without a change to `.github/scripts/check_golden_stack.py`. Compose does not create `websploit-isolated` until a service attaches, unless `docker compose --all-resources up` is used.
 
 When adding a classic lab:
 
@@ -85,9 +86,9 @@ When adding an AI-track lab:
 1. Create `agentic-ai-labs/<lab>/` with a `Dockerfile`, app source, `requirements.txt`, and a `README.md` (objective, vulnerable endpoints, exploitation hints, learning objectives, isolated-lab disclaimer).
 2. Add a service block in the existing `docker-compose.yml` with build path `./agentic-ai-labs/<dir>`, `profiles: ["ai"]`, `container_name`, `restart: unless-stopped`, a healthcheck, `mem_limit`, and `cpus`.
 3. Use the reserved block only: `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039`. `mind-core` already owns `10.6.6.50` / `5030`. The next names reserved in issue #89 are oracle-booth `.51:5031`, marionette `.52:5032`, tainted-well `.53:5033`, echo-chamber `.54:5034`, false-prophet `.55:5035`, and token-famine `.56:5036`. `.57`–`.59` and ports `5037`–`5039` stay unused until a later issue assigns them.
-4. Call `mind-core` at `http://mind-core:5030` (or `http://10.6.6.50:5030`) using the contract in `agentic-ai-labs/mind-core/README.md`. Add flag triggers to `agentic-ai-labs/mind-core/rules.json` instead of putting a model in the lab container.
+4. Call `mind-core` at `http://mind-core:5030` (or `http://10.6.6.50:5030`) using the contract in `agentic-ai-labs/mind-core/README.md`. Those URLs resolve only on `websploit`. Add flag triggers to `agentic-ai-labs/mind-core/rules.json` instead of putting a model in the lab container. The Dockerfile copies `rules.json` into the image, so a rule or flag edit needs `docker compose --profile ai up -d --build mind-core`.
 5. Keep the lab intentionally vulnerable to its target class. Do not add those weaknesses to `mind-core`.
-6. `websploit-isolated` (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`) is for marionette. Attaching that lab means updating `.github/scripts/check_golden_stack.py`, which currently fails if any service joins the network.
+6. `websploit-isolated` (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`) is for marionette. Keep that declaration. marionette joins both `websploit` and `websploit-isolated`; the golden-stack guard already allows that dual-homed attach and reads the lab's golden IPv4 from `websploit`. Leave mind-core on `websploit` only. Other AI labs stay on `websploit` alone.
 7. Update the top-level README, `agentic-ai-labs/README.md`, and the lab README. Leave `additional-labs/` unchanged.
 
 ## How to run things
@@ -95,12 +96,12 @@ When adding an AI-track lab:
 From the repo root:
 
 ```bash
-docker compose up -d --build      # build custom labs + start everything
+docker compose up -d --build      # classic labs; the AI track stays off
 docker compose ps                 # list containers
 docker compose logs -f <name>     # tail a service
 docker compose build --no-cache <name>
 docker compose down               # stop everything
-docker compose --profile ai up -d --build mind-core   # opt-in backend only
+docker compose --profile ai up -d --build mind-core   # backend only; name the service so the classic stack stays down
 ```
 
 The `install.sh` script is meant to be run as root on Kali/Parrot. It installs system tooling, clones companion repos into `/root/`, and runs `docker-compose -f docker-compose.yml up -d`. Don't run it on your dev machine.

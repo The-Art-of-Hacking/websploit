@@ -9,7 +9,7 @@ thread; it returns as soon as the rule table is scanned.
 from __future__ import annotations
 
 import re
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Protocol
@@ -128,6 +128,19 @@ class Engine:
         self._backends = dict(backends)
         self.requested_backend = requested_backend
         self.timeout_seconds = timeout_seconds
+
+    @property
+    def configured_backend(self) -> str:
+        """Backend this process will call.
+
+        When ``requested_backend`` is not registered, completions use the
+        deterministic rules engine, and that name is the configured backend.
+        """
+
+        selected = self._backends.get(self.requested_backend)
+        if selected is None:
+            return self._deterministic.name
+        return selected.name
 
     def complete(self, request: CompletionRequest) -> Completion:
         backend = self._backends.get(self.requested_backend)
@@ -272,6 +285,13 @@ def _excerpt(prompt: str) -> str:
     return cleaned or "(empty)"
 
 
+# Compose sets pids_limit: 64. Cap workers so timed-out calls cannot fill
+# that cgroup while a slow backend is still returning. This stays at the
+# HTTP concurrency default. The deterministic backend never takes this path.
+_MAX_BACKEND_WORKERS = 8
+_BACKEND_SLOTS = threading.BoundedSemaphore(_MAX_BACKEND_WORKERS)
+
+
 def _call_with_timeout(
     backend: CompletionBackend,
     request: CompletionRequest,
@@ -279,26 +299,40 @@ def _call_with_timeout(
 ) -> BackendResult:
     """Bound a future model call.
 
-    ``shutdown(wait=False)`` returns the HTTP response without joining a
-    stuck worker. The deterministic backend never takes this path.
-    A later model backend should still enforce its own deadline inside
-    ``complete`` so the worker thread can exit.
+    The worker is a daemon and is joined only until ``timeout_seconds``.
+    A timed-out call returns without leaving a non-daemon thread behind.
+    If every worker slot is still occupied, the call fails immediately
+    instead of starting another thread. A later model backend should
+    return from ``complete`` on its own deadline so the worker can exit.
     """
 
-    pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="mind-core-backend")
-    future = pool.submit(backend.complete, request)
+    if not _BACKEND_SLOTS.acquire(blocking=False):
+        raise BackendTimeout()
+    holder: dict[str, object] = {}
+
+    def run() -> None:
+        try:
+            holder["result"] = backend.complete(request)
+        except Exception as exc:
+            holder["error"] = exc
+        finally:
+            _BACKEND_SLOTS.release()
+
+    worker = threading.Thread(target=run, name="mind-core-backend", daemon=True)
     try:
-        result = future.result(timeout=timeout_seconds)
-    except FuturesTimeoutError as exc:
-        pool.shutdown(wait=False, cancel_futures=True)
-        raise BackendTimeout() from exc
-    except BackendUnavailable:
-        pool.shutdown(wait=True, cancel_futures=True)
+        worker.start()
+    except Exception:
+        _BACKEND_SLOTS.release()
         raise
-    except Exception as exc:
-        pool.shutdown(wait=True, cancel_futures=True)
-        raise BackendUnavailable() from exc
-    pool.shutdown(wait=True)
+    worker.join(timeout_seconds)
+    if worker.is_alive():
+        raise BackendTimeout()
+    error = holder.get("error")
+    if isinstance(error, BackendUnavailable):
+        raise error
+    if isinstance(error, Exception):
+        raise BackendUnavailable() from error
+    result = holder.get("result")
     if not isinstance(result, BackendResult) or not isinstance(result.text, str):
         raise BackendUnavailable()
     return result
