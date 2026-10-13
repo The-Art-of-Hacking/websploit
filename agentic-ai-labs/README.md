@@ -20,9 +20,15 @@ Start just the shared backend by activating the profile and naming the service:
 docker compose --profile ai up -d --build mind-core
 ```
 
-`docker compose --profile ai up -d --build` with no service names starts the classic stack and every service in the `ai` profile. Naming the services is how you avoid booting every classic lab.
+Start the backend and the improper-output-handling lab the same way:
 
-`docker compose up` without `--profile ai` does not create or start `mind-core`.
+```bash
+docker compose --profile ai up -d --build mind-core echo-chamber
+```
+
+`docker compose --profile ai up -d --build` with no service names starts the classic stack and every service in the `ai` profile (`mind-core` and `echo-chamber`). Naming the services is how you avoid booting every classic lab.
+
+`docker compose up` without `--profile ai` does not create or start `mind-core` or `echo-chamber`.
 
 ## Backend tiers
 
@@ -44,7 +50,7 @@ The AI track uses `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039` on th
 | oracle-booth | 10.6.6.51 | 5031 | Reserved, not created |
 | marionette | 10.6.6.52 | 5032 | Reserved, not created |
 | tainted-well | 10.6.6.53 | 5033 | Reserved, not created |
-| echo-chamber | 10.6.6.54 | 5034 | Reserved, not created |
+| echo-chamber | 10.6.6.54 | 5034 | Deployed with profile `ai` |
 | false-prophet | 10.6.6.55 | 5035 | Reserved, not created |
 | token-famine | 10.6.6.56 | 5036 | Reserved, not created |
 | (unassigned) | 10.6.6.57–10.6.6.59 | 5037–5039 | Unused |
@@ -54,8 +60,9 @@ The AI track uses `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039` on th
 | Directory | Container | Role |
 | --- | --- | --- |
 | `mind-core/` | `mind-core` | Shared completion API. Not a vulnerable lab. |
+| `echo-chamber/` | `echo-chamber` | LLM05 improper output handling. Intentionally vulnerable. |
 
-Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./agentic-ai-labs/<dir>`, profile `ai`, a healthcheck, and memory and CPU limits. The track will map onto the OWASP Top 10 for LLM Applications (2025). `marionette` is the agentic exercise. Each lab is documented in its own change; none of those labs ship here.
+Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./agentic-ai-labs/<dir>`, profile `ai`, a healthcheck, and memory and CPU limits. The track maps onto the OWASP Top 10 for LLM Applications (2025). `echo-chamber` is documented in [echo-chamber/README.md](echo-chamber/README.md). `marionette` is still the later agentic exercise.
 
 ## Isolated network
 
@@ -68,7 +75,7 @@ Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./a
 | Internal | yes (no internet egress) |
 | Attached containers | none |
 
-`containers.sh` already prints this subnet. The network is declared in Compose so that reference has a definition to match. Compose v2 does not create a network until a service references it, unless you pass `--all-resources`, so `10.7.7.1` will not show up on the host until `marionette` attaches. No service attaches in this change. The golden-stack check requires this declaration (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`) and allows a later service to reference the network. marionette has to join `websploit` as well, because mind-core is not on `websploit-isolated`.
+`containers.sh` already prints this subnet. The network is declared in Compose so that reference has a definition to match. Compose v2 does not create a network until a service references it, unless you pass `--all-resources`, so `10.7.7.1` will not show up on the host until `marionette` attaches. `echo-chamber` stays on `websploit` and does not join this network. The golden-stack check requires this declaration (`10.7.7.0/24`, gateway `10.7.7.1`, `internal: true`) and allows a later service to reference the network. marionette has to join `websploit` as well, because mind-core is not on `websploit-isolated`.
 
 ## Calling mind-core
 
