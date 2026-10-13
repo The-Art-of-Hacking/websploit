@@ -6,19 +6,22 @@ match the checked-in golden files. mind-core, echo-chamber, oracle-booth,
 and later AI labs stay behind the ``ai`` profile and must not appear in
 that default set.
 
-With ``--profile ai``, mind-core, echo-chamber, and oracle-booth must all
-be present. Services beyond the default set are allowed when their Compose
-profile includes ``ai``, their IPv4 on the ``websploit`` network is in
-10.6.6.50–10.6.6.59, and every published host port is in 5030–5039.
-Those services must not change a default service's name, IP, or host
-port. mind-core, echo-chamber, and oracle-booth stay on ``websploit``
-only. echo-chamber and oracle-booth depend on mind-core with
-``condition: service_healthy``.
+With ``--profile ai``, mind-core, echo-chamber, oracle-booth, and
+marionette must all be present. Services beyond the default set are
+allowed when their Compose profile includes ``ai``, their IPv4 on the
+``websploit`` network is in 10.6.6.50–10.6.6.59, and every published
+host port is in 5030–5039. Those services must not change a default
+service's name, IP, or host port. mind-core, echo-chamber, and
+oracle-booth stay on ``websploit`` only. echo-chamber, oracle-booth,
+and marionette depend on mind-core with ``condition: service_healthy``.
 
-A later service may also attach to ``websploit-isolated`` (marionette,
-which has to join both networks). The golden IPv4 is the ``websploit``
-address. echo-chamber and oracle-booth do not attach there. The
-declaration must stay 10.7.7.0/24, gateway 10.7.7.1, internal: true.
+marionette also attaches to ``websploit-isolated``. The golden IPv4 is
+the ``websploit`` address. Every other service is rejected if it joins
+``websploit-isolated``. The declaration must stay 10.7.7.0/24, gateway
+10.7.7.1, internal: true.
+
+``--synthetic`` checks that attachment from the Compose file and from
+in-memory service maps. It does not run Docker.
 """
 
 from __future__ import annotations
@@ -35,11 +38,18 @@ GOLDEN = ROOT / ".github" / "golden-stack"
 MIND_CORE_ENDPOINT = "mind-core 10.6.6.50 5030:5030/tcp"
 ECHO_CHAMBER_ENDPOINT = "echo-chamber 10.6.6.54 5034:5034/tcp"
 ORACLE_BOOTH_ENDPOINT = "oracle-booth 10.6.6.51 5031:5031/tcp"
+MARIONETTE_ENDPOINT = "marionette 10.6.6.52 5032:5032/tcp"
+MARIONETTE_ISOLATED_IP = "10.7.7.52"
+ISOLATED_GATEWAY = "10.7.7.1"
 AI_PORT_MIN = 5030
 AI_PORT_MAX = 5039
 
 
 def main() -> int:
+    if len(sys.argv) == 2 and sys.argv[1] == "--synthetic":
+        return synthetic_check()
+    if len(sys.argv) != 1:
+        raise SystemExit("usage: check_golden_stack.py [--synthetic]")
     default = compose_config(None)
     profiled = compose_config("ai")
     compare("services", service_names(default), read_lines(GOLDEN / "services.txt"))
@@ -141,7 +151,7 @@ def normalize_port(port: object) -> str:
 
 def assert_default_has_no_ai_track(config: dict) -> None:
     services = config.get("services") or {}
-    for name in ("mind-core", "echo-chamber", "oracle-booth"):
+    for name in ("mind-core", "echo-chamber", "oracle-booth", "marionette"):
         if name in services:
             raise SystemExit(f"{name} is part of the default stack; it must stay behind the ai profile")
     for line in endpoints(config):
@@ -168,11 +178,11 @@ def require_ai_additions(default: dict, profiled: dict) -> None:
     _reject_isolated(profiled, default_names, "default services stay on websploit")
 
     extras = sorted(profiled_names - default_names)
-    required_ai = ("mind-core", "echo-chamber", "oracle-booth")
+    required_ai = ("mind-core", "echo-chamber", "oracle-booth", "marionette")
     missing_ai = [name for name in required_ai if name not in extras]
     if missing_ai:
         raise SystemExit(
-            "profile ai must include mind-core, echo-chamber, and oracle-booth; "
+            "profile ai must include mind-core, echo-chamber, oracle-booth, and marionette; "
             f"missing {missing_ai}"
         )
 
@@ -231,6 +241,107 @@ def require_ai_additions(default: dict, profiled: dict) -> None:
     require_limits(booth, "oracle-booth")
     _require_websploit_only(booth, "oracle-booth")
     require_healthy_dependency(booth, "oracle-booth", "mind-core")
+
+    puppet = profiled["services"]["marionette"]
+    puppet_lines = endpoints(profiled, {"marionette"})
+    if puppet_lines != [MARIONETTE_ENDPOINT]:
+        raise SystemExit(f"marionette endpoint is {puppet_lines}, expected {[MARIONETTE_ENDPOINT]}")
+    require_limits(puppet, "marionette")
+    require_marionette_networks(puppet)
+    require_healthy_dependency(puppet, "marionette", "mind-core")
+    assert_isolated_attachments(default.get("services") or {})
+    assert_isolated_attachments(profiled.get("services") or {})
+
+
+def require_marionette_networks(service: dict) -> None:
+    """marionette joins both bridges. The isolated address is not the gateway."""
+
+    networks = service.get("networks") or {}
+    if not isinstance(networks, dict):
+        raise SystemExit("marionette networks are not a mapping")
+    names = sorted(networks)
+    if names != ["websploit", "websploit-isolated"]:
+        raise SystemExit(
+            f"marionette networks are {names}; it must join websploit and websploit-isolated"
+        )
+    isolated = networks["websploit-isolated"]
+    address = isolated.get("ipv4_address") if isinstance(isolated, dict) else None
+    if address != MARIONETTE_ISOLATED_IP:
+        raise SystemExit(f"marionette isolated address is {address}, expected {MARIONETTE_ISOLATED_IP}")
+    if address in {ISOLATED_GATEWAY, "10.7.7.0", "10.7.7.255"}:
+        raise SystemExit("marionette isolated address collides with the gateway or network address")
+    websploit = networks["websploit"]
+    websploit_address = websploit.get("ipv4_address") if isinstance(websploit, dict) else None
+    if websploit_address != "10.6.6.52":
+        raise SystemExit(f"marionette websploit address is {websploit_address}, expected 10.6.6.52")
+
+
+def assert_isolated_attachments(services: dict) -> None:
+    """Reject every service except marionette on websploit-isolated."""
+
+    for name in sorted(services):
+        service = services.get(name) or {}
+        if not isinstance(service, dict):
+            continue
+        networks = service.get("networks") or {}
+        if isinstance(networks, dict):
+            attached = "websploit-isolated" in networks
+        elif isinstance(networks, list):
+            attached = "websploit-isolated" in networks
+        else:
+            attached = False
+        if not attached:
+            continue
+        if name != "marionette":
+            raise SystemExit(f"{name} joined websploit-isolated; only marionette may attach")
+        require_marionette_networks(service)
+
+
+def synthetic_check() -> int:
+    """Validate the isolated attachment without Docker."""
+
+    require_isolated_source()
+    text = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    attachments = text.count("\n      websploit-isolated:\n")
+    if attachments != 1:
+        raise SystemExit(f"websploit-isolated service attachments: {attachments}, expected 1")
+    if f"ipv4_address: {MARIONETTE_ISOLATED_IP}" not in text:
+        raise SystemExit("marionette isolated address missing")
+    if "ipv4_address: 10.6.6.52" not in text:
+        raise SystemExit("marionette websploit address missing")
+    if text.count("10.7.7.1") != 1:
+        raise SystemExit("websploit-isolated gateway must appear once and not as a service address")
+    if f"ipv4_address: {ISOLATED_GATEWAY}" in text:
+        raise SystemExit("isolated gateway is assigned to a service")
+    good = {
+        "marionette": {
+            "networks": {
+                "websploit": {"ipv4_address": "10.6.6.52"},
+                "websploit-isolated": {"ipv4_address": MARIONETTE_ISOLATED_IP},
+            }
+        },
+        "oracle-booth": {"networks": {"websploit": {"ipv4_address": "10.6.6.51"}}},
+    }
+    assert_isolated_attachments(good)
+    require_marionette_networks(good["marionette"])
+    bad = {
+        "marionette": good["marionette"],
+        "tainted-well": {
+            "networks": {
+                "websploit": {"ipv4_address": "10.6.6.53"},
+                "websploit-isolated": {"ipv4_address": "10.7.7.53"},
+            }
+        },
+    }
+    try:
+        assert_isolated_attachments(bad)
+    except SystemExit as exc:
+        if "tainted-well" not in str(exc):
+            raise
+    else:
+        raise SystemExit("non-marionette isolated attachment was accepted")
+    print("synthetic golden stack ok")
+    return 0
 
 
 def _reject_isolated(config: dict, names: set[str], reason: str) -> None:

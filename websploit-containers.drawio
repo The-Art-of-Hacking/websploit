@@ -5,7 +5,7 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="iJlCfjiZ61T7vJXyeU1L-6" value="WEBSPLOIT CONTAINERS" style="swimlane;collapsible=0;" parent="1" vertex="1">
-          <mxGeometry x="40" y="20" width="770" height="860" as="geometry" />
+          <mxGeometry x="40" y="20" width="770" height="940" as="geometry" />
         </mxCell>
         <mxCell id="LLW9y0FG7gJkehehmOA8-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;endFill=0;" edge="1" parent="iJlCfjiZ61T7vJXyeU1L-6" source="iJlCfjiZ61T7vJXyeU1L-7">
           <mxGeometry relative="1" as="geometry">
@@ -171,6 +171,9 @@
         </mxCell>
         <mxCell id="echo-chamber-profile-ai" value="echo-chamber (profile ai)&lt;br&gt;10.6.6.54:5034" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
           <mxGeometry x="516" y="740" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="marionette-profile-ai" value="marionette (profile ai)&lt;br&gt;10.6.6.52:5032&lt;br&gt;isolated 10.7.7.52" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
+          <mxGeometry x="76" y="810" width="250" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
