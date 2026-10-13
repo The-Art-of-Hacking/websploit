@@ -1,6 +1,6 @@
 # Agentic AI labs
 
-Opt-in track for WebSploit Labs by Omar Santos (@santosomar). Classic web labs stay in [`additional-labs/`](../additional-labs/). This directory is separate so `docker compose up` and `install.sh` keep today's footprint unless you ask for the `ai` profile.
+Opt-in track for WebSploit Labs by Omar Santos (@santosomar). Classic web labs stay in [`additional-labs/`](../additional-labs/). This directory is separate so `docker compose up` and `install.sh` keep today's footprint unless you ask for the `ai` profile. `sudo bash install.sh` with no flag still runs `docker-compose -f docker-compose.yml up -d` and leaves this track off. `sudo bash install.sh --with-ai` enables profile `ai` only. It does not download model weights and does not enable profile `ai-model`. The local-model profile stays a separate manual opt-in. These containers are intentionally vulnerable and must only run in an isolated, non-production environment.
 
 More about WebSploit Labs: [https://websploit.org](https://websploit.org). Source: [https://github.com/The-Art-of-Hacking/websploit](https://github.com/The-Art-of-Hacking/websploit).
 
@@ -8,10 +8,17 @@ More about WebSploit Labs: [https://websploit.org](https://websploit.org). Sourc
 
 ## Opt in
 
-From the repository root, a plain Compose up leaves the AI track off:
+From the repository root, a plain Compose up leaves the AI track off. So does `install.sh` with no flag:
 
 ```bash
 docker compose up -d
+sudo bash install.sh
+```
+
+`install.sh --with-ai` is the installer form of profile `ai`. It does not download model weights and does not enable profile `ai-model`. The local-model profile stays a separate manual opt-in. These containers are intentionally vulnerable and must only run in an isolated, non-production environment.
+
+```bash
+sudo bash install.sh --with-ai
 ```
 
 Start just the shared backend by activating the profile and naming the service:

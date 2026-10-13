@@ -41,6 +41,16 @@ This script will:
 - Deploy intentionally vulnerable containers
 - Add thousands of cybersecurity resources
 
+`sudo bash install.sh` with no flag is the command above. It runs `docker-compose -f docker-compose.yml up -d` and does not start profiled services.
+
+Optional AI track:
+
+```bash
+sudo bash install.sh --with-ai
+```
+
+`--with-ai` enables Compose profile `ai` only. It starts `mind-core` and the AI labs already in the Compose file, along with the classic stack. It does not download model weights and does not enable profile `ai-model`. The local-model profile stays a separate manual opt-in; use the Quick Start command that passes both `--profile ai` and `--profile ai-model` when you want the pinned GGUF. These containers are intentionally vulnerable and must only run in an isolated, non-production environment.
+
 ---
 
 ## Available Containers
@@ -87,7 +97,7 @@ Custom-built labs focusing on specific vulnerability categories. These labs are 
 
 #### Opt-in AI track (Compose profile `ai`)
 
-`docker compose up` does not start this track. `docker compose --profile ai up -d --build` starts the classic stack and the AI services. To build and start just the shared backend, or the backend plus one lab, activate the profile and name the services:
+`docker compose up` does not start this track. `sudo bash install.sh` does not start it either. `sudo bash install.sh --with-ai` enables profile `ai` only: the classic stack plus these AI services, with no model download and without profile `ai-model`. The local-model profile stays a separate manual opt-in. These containers are intentionally vulnerable and must only run in an isolated, non-production environment. `docker compose --profile ai up -d --build` starts the classic stack and the AI services. To build and start just the shared backend, or the backend plus one lab, activate the profile and name the services:
 
 ```bash
 docker compose --profile ai up -d --build mind-core
