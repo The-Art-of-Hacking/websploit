@@ -101,9 +101,10 @@ docker compose --profile ai up -d --build mind-core
 
 | Container | IP Address | Port | Role |
 | --- | --- | --- | --- |
-| **mind-core** | 10.6.6.50 | 5030 | Shared deterministic backend for later AI labs |
+| **mind-core** | 10.6.6.50 | 5030 | Shared deterministic backend for the AI track |
+| **echo-chamber** | 10.6.6.54 | 5034 | LLM05 improper output handling (intentionally vulnerable) |
 
-`mind-core` is infrastructure, not a vulnerable challenge. Addresses `10.6.6.51`–`10.6.6.56` and host ports `5031`–`5036` are reserved for later labs and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
+`mind-core` is infrastructure, not a vulnerable challenge. `echo-chamber` depends on it and starts only with profile `ai`. Addresses `10.6.6.51`–`10.6.6.53`, `10.6.6.55`–`10.6.6.56`, and host ports `5031`–`5033` and `5035`–`5036` are reserved for later labs and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
 
 ---
 
@@ -128,8 +129,8 @@ docker compose down
 # Rebuild specific containers
 docker compose build --no-cache [container_name]
 
-# Opt in to the AI track (mind-core). The commands above do not start it.
-docker compose --profile ai up -d --build mind-core
+# Opt in to the AI track. The commands above do not start it.
+docker compose --profile ai up -d --build mind-core echo-chamber
 ```
 
 ---
@@ -163,7 +164,8 @@ docker compose --profile ai up -d --build mind-core
 │  ├── redis-rogue       10.6.6.43                            │
 │  ├── graphql-galaxy    10.6.6.44                            │
 │  ├── proto-pollute     10.6.6.45                            │
-│  └── mind-core         10.6.6.50  (profile ai, port 5030)   │
+│  ├── mind-core         10.6.6.50  (profile ai, port 5030)   │
+│  └── echo-chamber      10.6.6.54  (profile ai, port 5034)   │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -251,4 +253,4 @@ Prebuilt container images (WebGoat, Juice Shop, DVWA, and the CTF images) keep t
 > - Run them only in a safe, isolated environment.
 > - Use them for educational and authorized testing purposes only.
 >
-> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. AI-track labs added later are intentionally vulnerable and are covered by this warning.
+> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber` is an intentionally vulnerable AI-track lab and is covered by this warning.

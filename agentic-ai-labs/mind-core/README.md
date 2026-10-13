@@ -93,9 +93,15 @@ Built-in triggers:
 | `mind-core-help` | contains `mind-core help` | any | Short description of this API. |
 | `acknowledge-lab` | contains `acknowledge lab` | any | `Acknowledged lab {lab}.` |
 | `mind-core-self-check` | exact `self-check` | `mind-core` only | `mind-core self-check ok.` |
+| `echo-chamber-status` | contains `ops status` | `echo-chamber` | `disk` |
+| `echo-chamber-web` | contains `render status banner` | `echo-chamber` | HTML status banner for that lab |
+| `echo-chamber-sql` | contains `lookup maintenance note` | `echo-chamber` | SQL fragment for that lab |
+| `echo-chamber-shell` | contains `run health command` | `echo-chamber` | Shell command for that lab |
 | `generic-echo` | nothing else matched | any | Length and a short excerpt of the prompt. |
 
 Templates may use only `{lab}`, `{prompt_length}`, and `{prompt_excerpt}`. Those tokens are replaced once. A prompt that contains `{lab}` is not evaluated as a template. `{lab}` renders as `unspecified` when the request omits `lab`. Excerpts drop control characters and are capped at 120 characters.
+
+`echo-chamber` added its rules here. Those strings are data. This service returns them and does not render HTML, run SQL, or start a shell. Flag strings are training markers for that lab, not credentials.
 
 Later labs should add a rule here instead of embedding a model. Example shape for a future flag:
 
@@ -109,7 +115,7 @@ Later labs should add a rule here instead of embedding a model. Example shape fo
 }
 ```
 
-Do not put live secrets in `rules.json`. Flag strings for training labs belong to those lab changes, not to this foundation.
+Do not put live secrets in `rules.json`. Training-lab flag strings are added with the lab that captures them. They are not credentials, and this service does not treat them as code.
 
 ## Adding a backend later
 

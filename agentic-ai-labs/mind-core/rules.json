@@ -29,6 +29,34 @@
       "match_type": "exact",
       "match": "self-check",
       "text": "mind-core self-check ok."
+    },
+    {
+      "id": "echo-chamber-status",
+      "lab": "echo-chamber",
+      "match_type": "contains",
+      "match": "ops status",
+      "text": "disk"
+    },
+    {
+      "id": "echo-chamber-web",
+      "lab": "echo-chamber",
+      "match_type": "contains",
+      "match": "render status banner",
+      "text": "<div class=\"status-banner\">WEBSPLOIT{UN3SC4P3D_HTML_S1NK}</div>"
+    },
+    {
+      "id": "echo-chamber-sql",
+      "lab": "echo-chamber",
+      "match_type": "contains",
+      "match": "lookup maintenance note",
+      "text": "' UNION SELECT value FROM secrets WHERE name='sql' --"
+    },
+    {
+      "id": "echo-chamber-shell",
+      "lab": "echo-chamber",
+      "match_type": "contains",
+      "match": "run health command",
+      "text": "cat flags/shell.txt"
     }
   ]
 }

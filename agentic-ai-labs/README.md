@@ -14,13 +14,19 @@ From the repository root:
 docker compose --profile ai up -d --build
 ```
 
-That builds every service in the `ai` profile. Today that is only `mind-core`. To start the backend without the rest of the stack:
+That builds every service in the `ai` profile. Today that is `mind-core` and `echo-chamber`. To start the backend without the lab:
 
 ```bash
 docker compose --profile ai up -d --build mind-core
 ```
 
-`docker compose up` without `--profile ai` does not create or start `mind-core`.
+To start the backend and the improper-output-handling lab:
+
+```bash
+docker compose --profile ai up -d --build mind-core echo-chamber
+```
+
+`docker compose up` without `--profile ai` does not create or start `mind-core` or `echo-chamber`.
 
 ## Backend tiers
 
@@ -42,7 +48,7 @@ The AI track uses `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039` on th
 | oracle-booth | 10.6.6.51 | 5031 | Reserved, not created |
 | marionette | 10.6.6.52 | 5032 | Reserved, not created |
 | tainted-well | 10.6.6.53 | 5033 | Reserved, not created |
-| echo-chamber | 10.6.6.54 | 5034 | Reserved, not created |
+| echo-chamber | 10.6.6.54 | 5034 | Deployed with profile `ai` |
 | false-prophet | 10.6.6.55 | 5035 | Reserved, not created |
 | token-famine | 10.6.6.56 | 5036 | Reserved, not created |
 | (unassigned) | 10.6.6.57–10.6.6.59 | 5037–5039 | Unused |
@@ -52,8 +58,9 @@ The AI track uses `10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039` on th
 | Directory | Container | Role |
 | --- | --- | --- |
 | `mind-core/` | `mind-core` | Shared completion API. Not a vulnerable lab. |
+| `echo-chamber/` | `echo-chamber` | LLM05 improper output handling. Intentionally vulnerable. |
 
-Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./agentic-ai-labs/<dir>`, profile `ai`, a healthcheck, and memory and CPU limits. The track will map onto the OWASP Top 10 for LLM Applications (2025). `marionette` is the agentic exercise. Each lab is documented in its own change; none of those labs ship here.
+Labs added later should live in `agentic-ai-labs/<lab>/` and use build path `./agentic-ai-labs/<dir>`, profile `ai`, a healthcheck, and memory and CPU limits. The track maps onto the OWASP Top 10 for LLM Applications (2025). `echo-chamber` is documented in [echo-chamber/README.md](echo-chamber/README.md). `marionette` is still the later agentic exercise.
 
 ## Isolated network
 

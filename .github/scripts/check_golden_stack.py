@@ -2,7 +2,8 @@
 """Fail if the default Compose footprint drifts.
 
 With no profile, service names, static IPs, and published host ports must
-match the checked-in golden files. mind-core is allowed only with --profile ai.
+match the checked-in golden files. mind-core and echo-chamber are allowed
+only with --profile ai.
 
 The websploit-isolated network must exist and stay internal. No service
 joins it in this issue. The marionette lab has to update this guard when
@@ -20,6 +21,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 GOLDEN = ROOT / ".github" / "golden-stack"
 MIND_CORE_ENDPOINT = "mind-core 10.6.6.50 5030:5030/tcp"
+ECHO_CHAMBER_ENDPOINT = "echo-chamber 10.6.6.54 5034:5034/tcp"
+AI_ONLY = ("mind-core", "echo-chamber")
+AI_PORTS = ("5030:5030/tcp", "5034:5034/tcp")
 
 
 def main() -> int:
@@ -27,22 +31,21 @@ def main() -> int:
     profiled = compose_config("ai")
     compare("services", service_names(default), read_lines(GOLDEN / "services.txt"))
     compare("endpoints", endpoints(default), read_lines(GOLDEN / "endpoints.txt"))
-    if "mind-core" in default.get("services", {}):
-        raise SystemExit("mind-core is part of the default stack; it must stay behind the ai profile")
-    if "5030:5030/tcp" in "\n".join(endpoints(default)):
-        raise SystemExit("host port 5030 is published without the ai profile")
+    default_endpoints = "\n".join(endpoints(default))
+    for name in AI_ONLY:
+        if name in default.get("services", {}):
+            raise SystemExit(f"{name} is part of the default stack; it must stay behind the ai profile")
+    for published in AI_PORTS:
+        if published in default_endpoints:
+            raise SystemExit(f"host port {published} is published without the ai profile")
 
     names = service_names(profiled)
-    expected = service_names(default) + ["mind-core"]
+    expected = service_names(default) + list(AI_ONLY)
     if names != sorted(expected):
-        raise SystemExit("profile ai must add mind-core and keep every default service")
-    mind_core_lines = [line for line in endpoints(profiled) if line.startswith("mind-core ")]
-    if mind_core_lines != [MIND_CORE_ENDPOINT]:
-        raise SystemExit(f"mind-core endpoint is {mind_core_lines}, expected {MIND_CORE_ENDPOINT}")
-    require_limits(profiled["services"]["mind-core"])
-    mind_core_networks = sorted((profiled["services"]["mind-core"].get("networks") or {}))
-    if mind_core_networks != ["websploit"]:
-        raise SystemExit(f"mind-core networks are {mind_core_networks}; it must stay on websploit only")
+        raise SystemExit("profile ai must add mind-core and echo-chamber and keep every default service")
+    require_ai_service(profiled, "mind-core", MIND_CORE_ENDPOINT)
+    require_ai_service(profiled, "echo-chamber", ECHO_CHAMBER_ENDPOINT)
+    require_healthy_dependency(profiled["services"]["echo-chamber"], "echo-chamber", "mind-core")
     require_isolated_source()
     require_isolated(default)
     require_isolated(profiled)
@@ -128,13 +131,31 @@ def normalize_port(port: object) -> str:
     return f"{published}:{target}/{protocol}"
 
 
-def require_limits(service: dict) -> None:
+def require_ai_service(config: dict, name: str, endpoint: str) -> None:
+    lines = [line for line in endpoints(config) if line.startswith(name + " ")]
+    if lines != [endpoint]:
+        raise SystemExit(f"{name} endpoint is {lines}, expected {endpoint}")
+    require_limits(config["services"][name], name)
+    networks = sorted((config["services"][name].get("networks") or {}))
+    if networks != ["websploit"]:
+        raise SystemExit(f"{name} networks are {networks}; it must stay on websploit only")
+
+
+def require_healthy_dependency(service: dict, name: str, dependency: str) -> None:
+    depends = service.get("depends_on") or {}
+    spec = depends.get(dependency) if isinstance(depends, dict) else None
+    condition = spec.get("condition") if isinstance(spec, dict) else None
+    if condition != "service_healthy":
+        raise SystemExit(f"{name} must depend on {dependency} with condition service_healthy")
+
+
+def require_limits(service: dict, name: str) -> None:
     memory = memory_limit_bytes(service)
     cpus = cpu_limit(service)
     if memory != 128 * 1024 * 1024:
-        raise SystemExit(f"mind-core mem_limit is {memory}, expected 134217728")
+        raise SystemExit(f"{name} mem_limit is {memory}, expected 134217728")
     if cpus is None or abs(cpus - 0.5) > 0.001:
-        raise SystemExit(f"mind-core cpus is {cpus}, expected 0.5")
+        raise SystemExit(f"{name} cpus is {cpus}, expected 0.5")
 
 
 def memory_limit_bytes(service: dict) -> int | None:
