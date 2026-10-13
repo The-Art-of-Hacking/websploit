@@ -42,6 +42,10 @@ EXISTING_RULE_IDS = (
     "tainted-well-tenant",
     "tainted-well-artifact",
     "tainted-well-answer",
+    "false-prophet-fabricate",
+    "false-prophet-pump",
+    "false-prophet-depth",
+    "false-prophet-answer",
 )
 
 

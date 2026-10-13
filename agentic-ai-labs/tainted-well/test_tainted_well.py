@@ -105,7 +105,7 @@ class RuleContractTests(unittest.TestCase):
         start = ids.index("tainted-well-poison")
         self.assertEqual(ids[start - 1], "marionette-answer")
         self.assertEqual(
-            ids[start:],
+            ids[start : start + 4],
             [
                 "tainted-well-poison",
                 "tainted-well-tenant",
