@@ -175,6 +175,9 @@
         <mxCell id="marionette-profile-ai" value="marionette (profile ai)&lt;br&gt;10.6.6.52:5032&lt;br&gt;isolated 10.7.7.52" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
           <mxGeometry x="76" y="810" width="250" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="tainted-well-profile-ai" value="tainted-well (profile ai)&lt;br&gt;10.6.6.53:5033&lt;br&gt;pickled model artifact, same class as deserial-gate" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
+          <mxGeometry x="516" y="810" width="300" height="60" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

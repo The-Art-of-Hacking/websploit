@@ -103,11 +103,13 @@ Built-in triggers:
 | `marionette-pivot` | contains `invoke tool http_get on http://10.6.6.32` | `marionette` | Tool call `http_get` of `http://10.6.6.32` |
 | `marionette-vault` | contains `run db_query against the vault` | `marionette` | Tool call `db_query` of `SELECT value FROM vault` |
 | `marionette-answer` | contains `marionette context` | `marionette` | Status reply with no tool call |
+| `tainted-well-poison` | contains `promote the tainted index` | `tainted-well` | Poisoned-retrieval reply for that lab |
+| `tainted-well-answer` | contains `tainted-well context` | `tainted-well` | Plain retrieval answer |
 | `generic-echo` | nothing else matched | any | Length and a short excerpt of the prompt. |
 
 Templates may use only `{lab}`, `{prompt_length}`, and `{prompt_excerpt}`. Those tokens are replaced once. A prompt that contains `{lab}` is not evaluated as a template. `{lab}` renders as `unspecified` when the request omits `lab`. Excerpts drop control characters and are capped at 120 characters.
 
-`echo-chamber`, `oracle-booth`, and `marionette` added their rules here. Those strings are data. This service returns them and does not render HTML, run SQL, start a shell, fetch a URL, or decide which tool a lab may run. Flag strings are training markers for those labs, not credentials.
+`echo-chamber`, `oracle-booth`, `marionette`, and `tainted-well` added their rules here. Those strings are data. This service returns them and does not render HTML, run SQL, start a shell, fetch a URL, load model artifacts, or decide which tool a lab may run or which help-center records a lab may show. Flag strings are training markers for those labs, not credentials.
 
 `rules.json` is copied into the image (`COPY` in the Dockerfile). Compose does not mount it. A rule or flag edit requires a rebuild:
 
