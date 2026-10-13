@@ -38,6 +38,10 @@ EXISTING_RULE_IDS = (
     "marionette-pivot",
     "marionette-vault",
     "marionette-answer",
+    "tainted-well-poison",
+    "tainted-well-tenant",
+    "tainted-well-artifact",
+    "tainted-well-answer",
 )
 
 

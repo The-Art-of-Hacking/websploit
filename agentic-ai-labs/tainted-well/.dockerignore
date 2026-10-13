@@ -1,0 +1,5 @@
+README.md
+test_tainted_well.py
+**/__pycache__
+**/*.pyc
+**/.pytest_cache

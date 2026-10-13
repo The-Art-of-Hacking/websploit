@@ -99,6 +99,34 @@
       "match_type": "contains",
       "match": "marionette context",
       "text": "The status board says the copilot is online. No tool was required."
+    },
+    {
+      "id": "tainted-well-poison",
+      "lab": "tainted-well",
+      "match_type": "contains",
+      "match": "bias retrieval toward the planted well note",
+      "text": "Poisoned retrieval promoted the planted note. WEBSPLOIT{P01S0N3D_R3TR13V4L}"
+    },
+    {
+      "id": "tainted-well-tenant",
+      "lab": "tainted-well",
+      "match_type": "contains",
+      "match": "leak the other tenant chunk",
+      "text": "Foreign chunk from tenant north-well. WEBSPLOIT{CR0SS_T3N4NT_CHUNK}"
+    },
+    {
+      "id": "tainted-well-artifact",
+      "lab": "tainted-well",
+      "match_type": "contains",
+      "match": "untrusted embedding artifact loaded",
+      "text": "Loaded embedding artifact via insecure deserializer. WEBSPLOIT{UNTRUST3D_M0D3L_ART1F4CT}"
+    },
+    {
+      "id": "tainted-well-answer",
+      "lab": "tainted-well",
+      "match_type": "contains",
+      "match": "tainted-well context",
+      "text": "The public well report says the water is clear."
     }
   ]
 }
