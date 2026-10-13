@@ -114,7 +114,7 @@ class RuleContractTests(unittest.TestCase):
         start = ids.index("marionette-pivot")
         self.assertEqual(ids[start - 1], "oracle-booth-answer")
         self.assertEqual(
-            ids[start:],
+            ids[start : start + 3],
             ["marionette-pivot", "marionette-vault", "marionette-answer"],
         )
         for rule in app.LOCAL_RULES:

@@ -38,6 +38,12 @@ EXISTING_RULE_IDS = (
     "marionette-pivot",
     "marionette-vault",
     "marionette-answer",
+    "tainted-well-poison",
+    "tainted-well-answer",
+    "false-prophet-release",
+    "false-prophet-auditor",
+    "false-prophet-overview",
+    "false-prophet-answer",
 )
 
 

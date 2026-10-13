@@ -6,14 +6,15 @@ match the checked-in golden files. mind-core, echo-chamber, oracle-booth,
 and later AI labs stay behind the ``ai`` profile and must not appear in
 that default set.
 
-With ``--profile ai``, mind-core, echo-chamber, oracle-booth, and
-marionette must all be present. Services beyond the default set are
+With ``--profile ai``, mind-core, echo-chamber, oracle-booth,
+marionette, tainted-well, and false-prophet must all be present. Services beyond the default set are
 allowed when their Compose profile includes ``ai``, their IPv4 on the
 ``websploit`` network is in 10.6.6.50–10.6.6.59, and every published
 host port is in 5030–5039. Those services must not change a default
-service's name, IP, or host port. mind-core, echo-chamber, and
-oracle-booth stay on ``websploit`` only. echo-chamber, oracle-booth,
-and marionette depend on mind-core with ``condition: service_healthy``.
+service's name, IP, or host port. mind-core, echo-chamber,
+oracle-booth, tainted-well, and false-prophet stay on ``websploit`` only.
+echo-chamber, oracle-booth, marionette, tainted-well, and false-prophet
+depend on mind-core with ``condition: service_healthy``.
 
 marionette also attaches to ``websploit-isolated``. The golden IPv4 is
 the ``websploit`` address. Every other service is rejected if it joins
@@ -39,6 +40,8 @@ MIND_CORE_ENDPOINT = "mind-core 10.6.6.50 5030:5030/tcp"
 ECHO_CHAMBER_ENDPOINT = "echo-chamber 10.6.6.54 5034:5034/tcp"
 ORACLE_BOOTH_ENDPOINT = "oracle-booth 10.6.6.51 5031:5031/tcp"
 MARIONETTE_ENDPOINT = "marionette 10.6.6.52 5032:5032/tcp"
+TAINTED_WELL_ENDPOINT = "tainted-well 10.6.6.53 5033:5033/tcp"
+FALSE_PROPHET_ENDPOINT = "false-prophet 10.6.6.55 5035:5035/tcp"
 MARIONETTE_ISOLATED_IP = "10.7.7.52"
 ISOLATED_GATEWAY = "10.7.7.1"
 AI_PORT_MIN = 5030
@@ -151,7 +154,14 @@ def normalize_port(port: object) -> str:
 
 def assert_default_has_no_ai_track(config: dict) -> None:
     services = config.get("services") or {}
-    for name in ("mind-core", "echo-chamber", "oracle-booth", "marionette"):
+    for name in (
+        "mind-core",
+        "echo-chamber",
+        "oracle-booth",
+        "marionette",
+        "tainted-well",
+        "false-prophet",
+    ):
         if name in services:
             raise SystemExit(f"{name} is part of the default stack; it must stay behind the ai profile")
     for line in endpoints(config):
@@ -178,11 +188,19 @@ def require_ai_additions(default: dict, profiled: dict) -> None:
     _reject_isolated(profiled, default_names, "default services stay on websploit")
 
     extras = sorted(profiled_names - default_names)
-    required_ai = ("mind-core", "echo-chamber", "oracle-booth", "marionette")
+    required_ai = (
+        "mind-core",
+        "echo-chamber",
+        "oracle-booth",
+        "marionette",
+        "tainted-well",
+        "false-prophet",
+    )
     missing_ai = [name for name in required_ai if name not in extras]
     if missing_ai:
         raise SystemExit(
-            "profile ai must include mind-core, echo-chamber, oracle-booth, and marionette; "
+            "profile ai must include mind-core, echo-chamber, oracle-booth, marionette, tainted-well, "
+            "and false-prophet; "
             f"missing {missing_ai}"
         )
 
@@ -249,6 +267,23 @@ def require_ai_additions(default: dict, profiled: dict) -> None:
     require_limits(puppet, "marionette")
     require_marionette_networks(puppet)
     require_healthy_dependency(puppet, "marionette", "mind-core")
+
+    well = profiled["services"]["tainted-well"]
+    well_lines = endpoints(profiled, {"tainted-well"})
+    if well_lines != [TAINTED_WELL_ENDPOINT]:
+        raise SystemExit(f"tainted-well endpoint is {well_lines}, expected {[TAINTED_WELL_ENDPOINT]}")
+    require_limits(well, "tainted-well")
+    _require_websploit_only(well, "tainted-well")
+    require_healthy_dependency(well, "tainted-well", "mind-core")
+
+    prophet = profiled["services"]["false-prophet"]
+    prophet_lines = endpoints(profiled, {"false-prophet"})
+    if prophet_lines != [FALSE_PROPHET_ENDPOINT]:
+        raise SystemExit(f"false-prophet endpoint is {prophet_lines}, expected {[FALSE_PROPHET_ENDPOINT]}")
+    require_limits(prophet, "false-prophet")
+    _require_websploit_only(prophet, "false-prophet")
+    require_healthy_dependency(prophet, "false-prophet", "mind-core")
+
     assert_isolated_attachments(default.get("services") or {})
     assert_isolated_attachments(profiled.get("services") or {})
 

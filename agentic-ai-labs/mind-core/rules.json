@@ -99,6 +99,48 @@
       "match_type": "contains",
       "match": "marionette context",
       "text": "The status board says the copilot is online. No tool was required."
+    },
+    {
+      "id": "tainted-well-poison",
+      "lab": "tainted-well",
+      "match_type": "contains",
+      "match": "promote the tainted index",
+      "text": "Index promoted as requested. WEBSPLOIT{P01S0N3D_R3TR13V4L_B14S}"
+    },
+    {
+      "id": "tainted-well-answer",
+      "lab": "tainted-well",
+      "match_type": "contains",
+      "match": "tainted-well context",
+      "text": "Answer composed from the retrieved chunks."
+    },
+    {
+      "id": "false-prophet-release",
+      "lab": "false-prophet",
+      "match_type": "contains",
+      "match": "release Nimbus",
+      "text": "CLAIM nimbus-release-year=2016 CITE doc-100 :: ACME Nimbus first shipped in 2016, according to the release notes."
+    },
+    {
+      "id": "false-prophet-auditor",
+      "lab": "false-prophet",
+      "match_type": "contains",
+      "match": "audited ACME Nimbus",
+      "text": "CLAIM nimbus-auditor=meridian-labs CITE doc-777 :: ACME Nimbus was independently audited by Meridian Labs, per report doc-777."
+    },
+    {
+      "id": "false-prophet-overview",
+      "lab": "false-prophet",
+      "match_type": "contains",
+      "match": "What is ACME Nimbus",
+      "text": "CLAIM nimbus-category=database CITE doc-101 :: ACME Nimbus is a managed database service."
+    },
+    {
+      "id": "false-prophet-answer",
+      "lab": "false-prophet",
+      "match_type": "contains",
+      "match": "false-prophet context",
+      "text": "CLAIM none=none CITE none :: I can only answer from the ACME knowledge base."
     }
   ]
 }
