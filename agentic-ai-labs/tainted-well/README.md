@@ -41,7 +41,7 @@ docker compose --profile ai up -d --build mind-core tainted-well
 curl -sS http://127.0.0.1:5033/health
 ```
 
-Open `http://127.0.0.1:5033/` for the search form. Stop the lab with:
+Open `http://127.0.0.1:5033/` for the Well vector console. It drives the same endpoints from the browser: run a retrieval with any tenant and query, ingest a document into the shared index, and hot-swap the embedding model from a base64 artifact. The sidebar lists the index inventory (ids and tenants, no bodies). Stop the lab with:
 
 ```bash
 docker compose --profile ai rm -sf tainted-well mind-core
@@ -59,8 +59,9 @@ docker compose --profile ai up -d --build mind-core tainted-well
 
 | Method | Path | Fields | What it does |
 | --- | --- | --- | --- |
-| `GET` | `/` | | Search form. |
+| `GET` | `/` | | Vector console: retrieval, ingest, and model-load panels. No flag on this page. |
 | `GET` | `/health` | | None. |
+| `GET` | `/chunks` | | Index inventory: chunk ids, tenants, and the private flag. Bodies are not included, so no flag leaks here. |
 | `POST` | `/ingest` | `tenant`, `text` | Adds a chunk to the shared index. No provenance or trust check. |
 | `GET` or `POST` | `/search` | `tenant`, `query` | Ranks every chunk by token overlap (no tenant filter), sends the top three to `mind-core`, and returns the answer, the chunks, and any flags. |
 | `POST` | `/model/load` | `artifact` | Base64 pickle of an embedding model. Unpickled with `pickle.loads`, then warmed up. |
@@ -139,6 +140,8 @@ PY
 ```
 
 `flag` is `WEBSPLOIT{P1CKL3D_M0D3L_4RT1F4CT_RC3}`. A benign artifact such as `pickle.dumps({"name": "toy"})` loads as `dict` and returns no flag. Compare with `deserial-gate`, which makes the same mistake with a cookie.
+
+The load is real code execution, not only a file read. An artifact that returns `(subprocess.check_output, (["id"],))` loads with `warmup` set to the output of `id` (`uid=10005(well) ...`), which the console shows under the model panel. The three paths are all reachable from the browser console as well as from these `curl` calls.
 
 | Path | OWASP | How | Flag |
 | --- | --- | --- | --- |
