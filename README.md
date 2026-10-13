@@ -45,7 +45,7 @@ This script will:
 
 ## Available Containers
 
-WebSploit Labs includes a variety of vulnerable applications on the `websploit` bridge (`10.6.6.0/24`). An opt-in AI track stays out of `docker compose up` until you pass `--profile ai` and name the AI services. `docker compose --profile ai up` with no service names still starts the classic stack as well. An internal network (`websploit-isolated`, `10.7.7.0/24`) is declared for a later lab and has no containers yet.
+WebSploit Labs includes a variety of vulnerable applications on the `websploit` bridge (`10.6.6.0/24`). An opt-in AI track stays out of `docker compose up` until you pass `--profile ai` and name the AI services. `docker compose --profile ai up` with no service names still starts the classic stack as well. An internal network (`websploit-isolated`, `10.7.7.0/24`, no egress) holds only the `marionette` agent lab, and only when profile `ai` is active.
 
 ### WebSploit Network (10.6.6.0/24)
 
@@ -93,15 +93,17 @@ Custom-built labs focusing on specific vulnerability categories. These labs are 
 docker compose --profile ai up -d --build mind-core
 docker compose --profile ai up -d --build mind-core echo-chamber
 docker compose --profile ai up -d --build mind-core oracle-booth
+docker compose --profile ai up -d --build mind-core trojan-relay marionette
 ```
 
 | Container | IP Address | Port | Role |
 | --- | --- | --- | --- |
 | **mind-core** | 10.6.6.50 | 5030 | Shared deterministic backend for the AI track |
 | **oracle-booth** | 10.6.6.51 | 5031 | LLM01 prompt injection, LLM02 sensitive disclosure, LLM07 system prompt leakage (intentionally vulnerable) |
+| **marionette** | 10.6.6.52, 10.7.7.10 | 5032 | LLM06 excessive agency, LLM01 indirect prompt injection; tool SSRF pivot to `trojan-relay` (intentionally vulnerable) |
 | **echo-chamber** | 10.6.6.54 | 5034 | LLM05 improper output handling (intentionally vulnerable) |
 
-`mind-core` is infrastructure, not a vulnerable challenge. `oracle-booth` and `echo-chamber` depend on it and start only with profile `ai`. Addresses `10.6.6.52`–`10.6.6.53`, `10.6.6.55`–`10.6.6.56`, and host ports `5032`–`5033` and `5035`–`5036` are reserved for later labs and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
+`mind-core` is infrastructure, not a vulnerable challenge. `oracle-booth`, `marionette`, and `echo-chamber` depend on it and start only with profile `ai`. `marionette` also joins `websploit-isolated`. Addresses `10.6.6.53`, `10.6.6.55`–`10.6.6.56`, and host ports `5033` and `5035`–`5036` are reserved for later labs and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
 
 ---
 
@@ -129,6 +131,7 @@ docker compose build --no-cache [container_name]
 # Start mind-core and one AI lab. Naming the services leaves the classic stack down.
 docker compose --profile ai up -d --build mind-core echo-chamber
 docker compose --profile ai up -d --build mind-core oracle-booth
+docker compose --profile ai up -d --build mind-core trojan-relay marionette
 ```
 
 ---
@@ -164,12 +167,13 @@ docker compose --profile ai up -d --build mind-core oracle-booth
 │  ├── proto-pollute     10.6.6.45                            │
 │  ├── mind-core         10.6.6.50  (profile ai, port 5030)   │
 │  ├── oracle-booth      10.6.6.51  (profile ai, port 5031)   │
+│  ├── marionette        10.6.6.52  (profile ai, port 5032)   │
 │  └── echo-chamber      10.6.6.54  (profile ai, port 5034)   │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
 │  websploit-isolated (10.7.7.0/24, internal, no egress)      │
-│  No containers attach yet. Reserved for a later agent lab.  │
+│  └── marionette        10.7.7.10  (profile ai, sandbox)     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -252,4 +256,4 @@ Prebuilt container images (WebGoat, Juice Shop, DVWA, and the CTF images) keep t
 > - Run them only in a safe, isolated environment.
 > - Use them for educational and authorized testing purposes only.
 >
-> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber` and `oracle-booth` are intentionally vulnerable AI-track labs and are covered by this warning.
+> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber`, `oracle-booth`, and `marionette` are intentionally vulnerable AI-track labs and are covered by this warning.

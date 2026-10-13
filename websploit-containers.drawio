@@ -172,6 +172,9 @@
         <mxCell id="echo-chamber-profile-ai" value="echo-chamber (profile ai)&lt;br&gt;10.6.6.54:5034" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
           <mxGeometry x="516" y="740" width="220" height="50" as="geometry" />
         </mxCell>
+        <mxCell id="marionette-profile-ai" value="marionette (profile ai)&lt;br&gt;10.6.6.52:5032 + 10.7.7.10 (websploit-isolated)&lt;br&gt;tool SSRF pivot to trojan-relay 10.6.6.32" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=center;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
+          <mxGeometry x="76" y="800" width="430" height="60" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

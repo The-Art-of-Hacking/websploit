@@ -6,18 +6,16 @@ match the checked-in golden files. mind-core, echo-chamber, oracle-booth,
 and later AI labs stay behind the ``ai`` profile and must not appear in
 that default set.
 
-With ``--profile ai``, mind-core, echo-chamber, and oracle-booth must all
-be present. Services beyond the default set are allowed when their Compose
-profile includes ``ai``, their IPv4 on the ``websploit`` network is in
-10.6.6.50–10.6.6.59, and every published host port is in 5030–5039.
+With ``--profile ai``, mind-core, echo-chamber, oracle-booth, and marionette
+must all be present. Services beyond the default set are allowed when their
+Compose profile includes ``ai``, their IPv4 on the ``websploit`` network is
+in 10.6.6.50–10.6.6.59, and every published host port is in 5030–5039.
 Those services must not change a default service's name, IP, or host
 port. mind-core, echo-chamber, and oracle-booth stay on ``websploit``
-only. echo-chamber and oracle-booth depend on mind-core with
-``condition: service_healthy``.
+only. The labs depend on mind-core with ``condition: service_healthy``.
 
-A later service may also attach to ``websploit-isolated`` (marionette,
-which has to join both networks). The golden IPv4 is the ``websploit``
-address. echo-chamber and oracle-booth do not attach there. The
+marionette is the only service allowed on ``websploit-isolated`` and must
+join both networks. Its golden IPv4 is the ``websploit`` address. The
 declaration must stay 10.7.7.0/24, gateway 10.7.7.1, internal: true.
 """
 
@@ -35,6 +33,8 @@ GOLDEN = ROOT / ".github" / "golden-stack"
 MIND_CORE_ENDPOINT = "mind-core 10.6.6.50 5030:5030/tcp"
 ECHO_CHAMBER_ENDPOINT = "echo-chamber 10.6.6.54 5034:5034/tcp"
 ORACLE_BOOTH_ENDPOINT = "oracle-booth 10.6.6.51 5031:5031/tcp"
+MARIONETTE_ENDPOINT = "marionette 10.6.6.52 5032:5032/tcp"
+REQUIRED_AI = ("mind-core", "echo-chamber", "oracle-booth", "marionette")
 AI_PORT_MIN = 5030
 AI_PORT_MAX = 5039
 
@@ -141,7 +141,7 @@ def normalize_port(port: object) -> str:
 
 def assert_default_has_no_ai_track(config: dict) -> None:
     services = config.get("services") or {}
-    for name in ("mind-core", "echo-chamber", "oracle-booth"):
+    for name in REQUIRED_AI:
         if name in services:
             raise SystemExit(f"{name} is part of the default stack; it must stay behind the ai profile")
     for line in endpoints(config):
@@ -168,13 +168,10 @@ def require_ai_additions(default: dict, profiled: dict) -> None:
     _reject_isolated(profiled, default_names, "default services stay on websploit")
 
     extras = sorted(profiled_names - default_names)
-    required_ai = ("mind-core", "echo-chamber", "oracle-booth")
-    missing_ai = [name for name in required_ai if name not in extras]
+    missing_ai = [name for name in REQUIRED_AI if name not in extras]
     if missing_ai:
-        raise SystemExit(
-            "profile ai must include mind-core, echo-chamber, and oracle-booth; "
-            f"missing {missing_ai}"
-        )
+        raise SystemExit(f"profile ai must include {', '.join(REQUIRED_AI)}; missing {missing_ai}")
+    _reject_isolated(profiled, profiled_names - {"marionette"}, "only marionette may join it")
 
     used_addresses: dict[str, str] = {}
     used_ports: dict[int, str] = {}
@@ -231,6 +228,16 @@ def require_ai_additions(default: dict, profiled: dict) -> None:
     require_limits(booth, "oracle-booth")
     _require_websploit_only(booth, "oracle-booth")
     require_healthy_dependency(booth, "oracle-booth", "mind-core")
+
+    puppet = profiled["services"]["marionette"]
+    puppet_lines = endpoints(profiled, {"marionette"})
+    if puppet_lines != [MARIONETTE_ENDPOINT]:
+        raise SystemExit(f"marionette endpoint is {puppet_lines}, expected {[MARIONETTE_ENDPOINT]}")
+    require_limits(puppet, "marionette")
+    puppet_networks = sorted(puppet.get("networks") or {})
+    if puppet_networks != ["websploit", "websploit-isolated"]:
+        raise SystemExit(f"marionette networks are {puppet_networks}; it must join websploit and websploit-isolated")
+    require_healthy_dependency(puppet, "marionette", "mind-core")
 
 
 def _reject_isolated(config: dict, names: set[str], reason: str) -> None:
