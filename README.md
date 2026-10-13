@@ -94,6 +94,7 @@ docker compose --profile ai up -d --build mind-core
 docker compose --profile ai up -d --build mind-core echo-chamber
 docker compose --profile ai up -d --build mind-core oracle-booth
 docker compose --profile ai up -d --build mind-core marionette
+docker compose --profile ai up -d --build mind-core tainted-well
 ```
 
 | Container | IP Address | Port | Role |
@@ -101,9 +102,10 @@ docker compose --profile ai up -d --build mind-core marionette
 | **mind-core** | 10.6.6.50 | 5030 | Shared deterministic backend for the AI track |
 | **oracle-booth** | 10.6.6.51 | 5031 | LLM01 prompt injection, LLM02 sensitive disclosure, LLM07 system prompt leakage (intentionally vulnerable) |
 | **marionette** | 10.6.6.52 | 5032 | LLM06 excessive agency, LLM01 prompt injection (intentionally vulnerable). Also 10.7.7.52 on `websploit-isolated`. |
+| **tainted-well** | 10.6.6.53 | 5033 | LLM03 supply chain, LLM04 data and model poisoning, LLM08 vector and embedding weaknesses (intentionally vulnerable) |
 | **echo-chamber** | 10.6.6.54 | 5034 | LLM05 improper output handling (intentionally vulnerable) |
 
-`mind-core` is infrastructure, not a vulnerable challenge. `oracle-booth`, `marionette`, and `echo-chamber` depend on it and start only with profile `ai`. Addresses `10.6.6.53`, `10.6.6.55`–`10.6.6.56`, and host ports `5033` and `5035`–`5036` are reserved for later labs and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
+`mind-core` is infrastructure, not a vulnerable challenge. `oracle-booth`, `marionette`, `tainted-well`, and `echo-chamber` depend on it and start only with profile `ai`. Addresses `10.6.6.55`–`10.6.6.56` and host ports `5035`–`5036` are reserved for later labs and are not deployed. `10.6.6.46`–`10.6.6.49`, `10.6.6.57`–`10.6.6.59`, and host ports `5037`–`5039` are unused. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
 
 ---
 
@@ -132,6 +134,7 @@ docker compose build --no-cache [container_name]
 docker compose --profile ai up -d --build mind-core echo-chamber
 docker compose --profile ai up -d --build mind-core oracle-booth
 docker compose --profile ai up -d --build mind-core marionette
+docker compose --profile ai up -d --build mind-core tainted-well
 ```
 
 ---
@@ -168,6 +171,7 @@ docker compose --profile ai up -d --build mind-core marionette
 │  ├── mind-core         10.6.6.50  (profile ai, port 5030)   │
 │  ├── oracle-booth      10.6.6.51  (profile ai, port 5031)   │
 │  ├── marionette        10.6.6.52  (profile ai, port 5032)   │
+│  ├── tainted-well      10.6.6.53  (profile ai, port 5033)   │
 │  └── echo-chamber      10.6.6.54  (profile ai, port 5034)   │
 └─────────────────────────────────────────────────────────────┘
 
@@ -256,4 +260,4 @@ Prebuilt container images (WebGoat, Juice Shop, DVWA, and the CTF images) keep t
 > - Run them only in a safe, isolated environment.
 > - Use them for educational and authorized testing purposes only.
 >
-> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber`, `oracle-booth`, and `marionette` are intentionally vulnerable AI-track labs and are covered by this warning. The marionette tool sandbox has no internet egress.
+> `mind-core` is shared infrastructure for the opt-in AI track, not a vulnerable challenge. `echo-chamber`, `oracle-booth`, `marionette`, and `tainted-well` are intentionally vulnerable AI-track labs and are covered by this warning. The marionette tool sandbox has no internet egress. `tainted-well` stays on the `websploit` bridge and does not join that sandbox network.
