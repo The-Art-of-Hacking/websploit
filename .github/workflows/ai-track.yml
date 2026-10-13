@@ -1,7 +1,7 @@
 # Opt-in AI track checks. This workflow does not replace generate_checksum.yml.
 #
 # ubuntu-latest is linux/amd64. The image jobs build mind-core, echo-chamber,
-# oracle-booth, marionette, and tainted-well for linux/amd64 and linux/arm64. QEMU is
+# oracle-booth, marionette, tainted-well, and false-prophet for linux/amd64 and linux/arm64. QEMU is
 # registered only for that build step so the arm64 image can be built on
 # the hosted amd64 runner.
 # The smoke test runs the native amd64 image. Booting arm64 under QEMU is
@@ -46,6 +46,10 @@ jobs:
       - name: Tainted-well tests
         run: python3 -m unittest test_tainted_well
         working-directory: agentic-ai-labs/tainted-well
+
+      - name: False-prophet tests
+        run: python3 -m unittest test_false_prophet
+        working-directory: agentic-ai-labs/false-prophet
 
       - name: Compose config without a profile
         run: docker compose config -q
@@ -586,3 +590,116 @@ jobs:
       - name: Stop tainted-well and mind-core
         if: always()
         run: docker compose --profile ai rm -sf tainted-well mind-core
+
+  false-prophet-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Register QEMU for the arm64 build
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build false-prophet for linux/amd64 and linux/arm64
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --provenance=false \
+            --sbom=false \
+            --output type=oci,dest=/tmp/false-prophet.oci \
+            ./agentic-ai-labs/false-prophet
+          test -s /tmp/false-prophet.oci
+
+      - name: Start mind-core and false-prophet in deterministic mode
+        run: docker compose --profile ai up -d --build mind-core false-prophet
+
+      - name: Wait for the healthcheck and capture the flags
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 90))
+          status=""
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' false-prophet || true)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$status" != "healthy" ]; then
+            docker logs mind-core || true
+            docker logs false-prophet || true
+            echo "false-prophet health status: ${status}" >&2
+            exit 1
+          fi
+          python3 - << 'PY'
+          import json
+          import urllib.error
+          import urllib.request
+
+          MISINFO = "WEBSPLOIT{H4LLUC1N4T3D_F4CT_PR0V3N}"
+          CITATION = "WEBSPLOIT{F4BR1C4T3D_C1T4T10N_PR0V3N}"
+          BASE = "http://127.0.0.1:5035"
+
+          def get(path):
+              with urllib.request.urlopen(BASE + path, timeout=10) as response:
+                  return response.status, response.read().decode("utf-8")
+
+          def ask(question):
+              request = urllib.request.Request(
+                  BASE + "/generate",
+                  data=json.dumps({"question": question}).encode("utf-8"),
+                  headers={"Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=10) as response:
+                  if response.status != 200:
+                      raise SystemExit(f"/generate status {response.status}")
+                  return json.load(response)
+
+          status, body = get("/health")
+          health = json.loads(body)
+          if status != 200 or health.get("status") != "ok" or health.get("ready") is not True:
+              raise SystemExit(f"health failed: {health}")
+
+          misinfo = ask("What year did ACME release Nimbus?")
+          verdict = misinfo.get("verdict", {})
+          if misinfo.get("source") != "mind-core" or misinfo.get("rule_id") != "false-prophet-release":
+              raise SystemExit(f"misinformation rule failed: {misinfo}")
+          if verdict.get("fact_status") != "contradicted" or verdict.get("truth") != "2021":
+              raise SystemExit(f"ground truth did not contradict the claim: {misinfo}")
+          if misinfo.get("flags") != [MISINFO]:
+              raise SystemExit(f"misinformation flag missing: {misinfo}")
+
+          cited = ask("Who audited ACME Nimbus?")
+          if cited.get("rule_id") != "false-prophet-auditor":
+              raise SystemExit(f"citation rule failed: {cited}")
+          source_id = cited.get("verdict", {}).get("citation")
+          try:
+              get("/sources/" + source_id)
+              raise SystemExit(f"fabricated source {source_id} resolved")
+          except urllib.error.HTTPError as exc:
+              if exc.code != 404:
+                  raise SystemExit(f"fabricated source lookup returned {exc.code}")
+          if cited.get("flags") != [CITATION]:
+              raise SystemExit(f"citation flag missing: {cited}")
+
+          honest = ask("What is ACME Nimbus?")
+          if honest.get("verdict", {}).get("fact_status") != "supported" or honest.get("flags"):
+              raise SystemExit(f"truthful answer released a flag: {honest}")
+
+          for path in ("/", "/facts", "/sources", "/samples"):
+              _status, page = get(path)
+              if MISINFO in page or CITATION in page:
+                  raise SystemExit(f"flag leaked on {path}")
+          print("false-prophet smoke ok")
+          PY
+
+      - name: Stop false-prophet and mind-core
+        if: always()
+        run: docker compose --profile ai rm -sf false-prophet mind-core
